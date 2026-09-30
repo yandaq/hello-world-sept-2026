@@ -1,0 +1,141 @@
+━━ integration-verifier ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. Read CONTRACT.md, AGENTS.md and VALIDATION.md, then verify the whole app end-to-end and FIX any wiring problems you find (you may edit any file in the repo now; keep fixes minimal and in the owning file).
+
+Steps:
+1. Confirm zero npm dependencies are required; do not run npm install. Confirm `npm run seed` works from a clean state (rm data/hello.db first) and is idempotent (run twice).
+2. `npm start` in the background; confirm it logs `listening on http://localhost:3000`.
+3. curl: /api/message -> 200 {"message":"hello world"}; / -> 200 HTML containing the hooks body.page, main.hero, section.card[data-state], #message, #status, link to /styles.css, module script /app.js; /styles.css -> 200 text/css; /app.js -> 200; /nope -> 404 {"error":"not found"}; POST /api/message -> 404; path traversal attempt -> no file leak.
+4. Empty/missing DB: stop server, rm data/hello.db, start, GET /api/message -> 503 {"error":"no message in database"}, server stays up. Then reseed and confirm 200 again.
+5. Render check: the page must actually display 'hello world' and be styled. Do this headlessly — e.g. if a headless browser is available use it; otherwise write a temporary Node script using fetch + a manual DOM-free simulation is NOT sufficient, so instead verify that app.js sets #message.textContent from the API and that data-state flips to ready by statically reading public/app.js, AND verify styles.css actually targets .card[data-state="ready"], .message, .hero, .page. Report clearly which method you used.
+6. Check for console/server errors beyond the expected node:sqlite ExperimentalWarning.
+7. Check the README run instructions are accurate; fix them if not.
+
+Kill any background server you start. Report a PASS/FAIL table of every check with actual observed output, plus any fixes you made.
+
+I'll start by orienting myself in the repo.
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls -la && echo \"---FIND---\" && find . -type f -not -path \"./.git/*\" -not -path \"./node_modul…
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","offset":null,"limit":null}
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/src/server.js","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/src/db.js","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/src/seed.js","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/index.html","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/app.js","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/package.json","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/README.md","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/VALIDATION.md","offset":null,"limit":null}
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && node --version && cat .gitignore && echo \"---CSS selectors---\" && grep -nE '^[^{]*\\{' public/s…
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/styles.css","offset":210,"limit":100}
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls data/ && rm -f data/hello.db && echo \"=== SEED 1 ===\" && npm run seed 2>&1 && echo \"=== SEE…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && lsof -ti:3000 || echo \"port free\"; (npm start > /tmp/hw-server.log 2>&1 &) ; for i in $(seq 1 4…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world\necho \"=== A: /api/message ===\"; curl -s -i http://localhost:3000/api/message\necho; echo \"=== B:…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world\necho \"=== extra traversal (path-as-is) ===\"\nfor u in \"/..%2f..%2fpackage.json\" \"/a/../../pack…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world\n# stop server\npkill -f \"node src/server.js\"; sleep 0.5; lsof -ti:3000 || echo \"port free\"\nrm …
+
+
+▸ bash {"command":"ls ~/Library/Caches/ms-playwright 2>/dev/null; ls ~/.cache/puppeteer 2>/dev/null; command -v chromium chrome google-chrome-stable 2>/dev/null; ls \"…
+
+
+▸ bash {"command":"cd /tmp && \"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome\" --headless --disable-gpu --no-sandbox --virtual-time-budget=5000 --user-…
+  ✖ Command timed out after 120 seconds
+
+
+▸ bash {"command":"pkill -f \"hw-chrome\" ; pkill -f \"Google Chrome --headless\"; ls ~/Library/Caches/ms-playwright/chromium_headless_shell-1234/ 2>/dev/null; find ~/…
+
+
+▸ bash {"command":"SHELL_BIN=~/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell; ls -l $SHELL_BIN && tim…
+
+
+▸ bash {"command":"SHELL_BIN=~/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell; $SHELL_BIN --disable-gp…
+
+
+▸ write {"path":"/tmp/hw-cdp.mjs","content":"import { spawn } from 'node:child_process';\nimport { homedir } from 'node:os';\n\nconst BIN = `${homedir()}/Library/Caches…
+
+
+▸ bash {"command":"cd /tmp && node hw-cdp.mjs 2>&1 | head -60","timeout":180}
+
+
+▸ read {"path":"/tmp/hw-screenshot.png","offset":null,"limit":null}
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world\nSHELL_BIN=~/Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world\npkill -f \"node src/server.js\"; pkill -f chrome-headless-shell; sleep 1\necho \"listeners 3000:\";…
+All checks run; **no wiring defects found — zero fixes required.** Servers and browser processes killed, temp files removed, port 3000/4000 free, DB left seeded with exactly one row.
+
+## Verdict: **PASS** (no fixes applied)
+
+### How to run
+```bash
+npm run seed     # no npm install needed — zero dependencies
+npm start        # → listening on http://localhost:3000
+open http://localhost:3000
+```
+
+### Results
+
+| # | Check | Expected | Observed | Result |
+|---|---|---|---|---|
+| 1 | Zero npm deps | no `dependencies`, no `node_modules`, no lockfile | `package.json` has only `scripts`/`engines`; no `node_modules`, no `package-lock.json`; app ran without `npm install` | **PASS** |
+| 1 | `npm run seed` from clean (`rm data/hello.db`) | creates + seeds | `seeded 'hello world' into data/hello.db` | **PASS** |
+| 1 | `npm run seed` 2nd run (idempotent) | no dupes, no error | `data/hello.db already contains 1 message(s), nothing to do`; `sqlite3 … SELECT *` → `1\|hello world` | **PASS** |
+| 2 | `npm start` log line | `listening on http://localhost:3000` | exact match | **PASS** |
+| 3 | `GET /api/message` | 200 `{"message":"hello world"}` | `HTTP/1.1 200`, `Content-Type: application/json`, `{"message":"hello world"}` | **PASS** |
+| 3 | `GET /` | 200 HTML + all hooks | `200 text/html; charset=utf-8`; found `<body class="page">`, `<main class="hero">`, `<section class="card" data-state="loading">`, `id="message"`, `id="status"`, `href="/styles.css"`, `type="module" src="/app.js"` | **PASS** |
+| 3 | `/styles.css` | 200 text/css | `200 text/css; charset=utf-8` | **PASS** |
+| 3 | `/app.js` | 200 | `200 text/javascript; charset=utf-8` | **PASS** |
+| 3 | `/nope` | 404 JSON | `HTTP/1.1 404`, `application/json`, `{"error":"not found"}` | **PASS** |
+| 3 | `POST /api/message` | 404 | `HTTP/1.1 404`, `{"error":"not found"}` | **PASS** |
+| 3 | Path traversal (9 vectors incl. `--path-as-is`, `%2f`, `%2e%2e`, `/a/../../`, `/....//`) | no leak | all → `404 {"error":"not found"}`; no file contents returned | **PASS** |
+| 3 | `/favicon.ico` | — | 404 JSON (no favicon shipped; HTML doesn't reference one, so no broken asset) | **PASS** (informational) |
+| 4 | Missing DB → `/api/message` | 503 `{"error":"no message in database"}` | exactly that; server stayed up (next `GET /` → 200) | **PASS** |
+| 4 | Empty `messages` table → `/api/message` | 503 | `503 {"error":"no message in database"}` | **PASS** |
+| 4 | Reseed → `/api/message` | 200 | `200 {"message":"hello world"}` | **PASS** |
+| 5 | Render 'hello world' | actual browser render | see method below: `data-state="ready"`, `#message.textContent === "hello world"`, `#status` empty | **PASS** |
+| 5 | Styling actually applied | CSS in effect | `document.styleSheets.length = 1`, 38 rules parsed; computed `card border-radius: 28px`, multi-layer `box-shadow`, `#message font-size: 86.4px / weight 800`, visible rect 407×88 | **PASS** |
+| 5 | Error-state render (no DB) | error UI | DOM: `data-state="error"`, `#status` = `no message in database` | **PASS** |
+| 6 | Browser console/page errors | none | CDP `Log.entryAdded` / `Runtime.consoleAPICalled` / `Runtime.exceptionThrown` / `Network.loadingFailed`: **(none)**; all 4 network responses 200 | **PASS** |
+| 6 | Server log errors | only ExperimentalWarning | only `ExperimentalWarning: SQLite is an experimental feature` (expected per CONTRACT §1). One stack trace logged *only* for a deliberately malformed `%2f` traversal probe — request still 404'd safely (see risks) | **PASS** |
+| 7 | README accuracy | matches reality | `npm run seed` / `npm start` / port 3000 / `PORT=4000 npm start` (verified: `listening on http://localhost:4000`, API 200) / zero deps / Node ≥22 / file layout table — all correct | **PASS** — no edit needed |
+
+### Render verification method (explicit)
+I used a **real headless browser that was already installed** — Playwright's cached `chrome-headless-shell` (`~/Library/Caches/ms-playwright/chromium_headless_shell-1234/…`). Nothing was installed. Two passes:
+1. `chrome-headless-shell --dump-dom --virtual-time-budget=6000 http://localhost:3000/` → post-JS DOM showed `<section class="card" data-state="ready">` and `<p id="message" class="message">hello world</p>`.
+2. A throwaway Node script driving the **Chrome DevTools Protocol** over Node 22's built-in `WebSocket` to capture computed styles, console/exception/network events, and a screenshot (`/tmp/hw-screenshot.png`, since deleted from the profile dirs). The screenshot shows a glass card on an aurora-gradient background with a blue-gradient "hello world" wordmark — i.e. styling is genuinely applied, not just linked.
+
+(Note: the system `Google Chrome.app` binary hung in `--headless` mode; the Playwright headless shell worked. Both temp profiles were removed.)
+
+### Fixes applied
+**None.** Every contract hook, route, status code, content type and DOM/CSS selector already lined up. I edited no repo files.
+
+### Remaining risks (non-blocking, no change made)
+- `src/server.js:55` — a request containing an encoded slash (`/..%2f..%2fsrc%2fdb.js`) makes `readFile` throw `ERR_INVALID_FILE_URL_PATH`, which is caught and logged with a full stack before returning the correct `404 {"error":"not found"}`. **No file leak**, but a remote caller can spam the log with stack traces. Optional hardening: in `handleStatic`, reject `pathname` containing `%2f`/`%5c` (or treat non-`ENOENT` as 404 without logging) before resolving the URL.
+- `README.md` "Verify" block backgrounds the server with `npm start &` and never stops it; accurate but leaves a stray process for a human. Cosmetic only — deliberately left unchanged per the surgical-fix rule.
+- No favicon is shipped and none is referenced, so browsers will issue one 404 for `/favicon.ico`. Harmless.
+
+
+✔ done

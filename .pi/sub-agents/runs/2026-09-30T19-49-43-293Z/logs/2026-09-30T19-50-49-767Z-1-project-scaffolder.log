@@ -1,0 +1,82 @@
+━━ project-scaffolder ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world (empty git repo, only AGENTS.md and VALIDATION.md present — read AGENTS.md and follow it: simplicity, no speculative deps, no over-engineering).
+
+Goal of the overall project: a small webapp that reads the string 'hello world' from a SQLite database and displays it in a visually stunning page.
+
+Environment: Node v22.21.1 is installed (has built-in `node:sqlite` DatabaseSync and built-in `node:http`). Python 3.14.7 also available. IMPORTANT: use plain Node with zero npm dependencies — use `node:sqlite` and `node:http`. Do NOT add Express, better-sqlite3, or any npm install step.
+
+Your job ONLY (do not write DB code, server logic, HTML body content, or CSS):
+1. Create package.json (name hello-world, type: module, private, engines node >=22, scripts: "seed": "node src/seed.js", "start": "node src/server.js").
+2. Create the directory layout with .gitkeep or placeholders ONLY where needed: src/, public/, data/ (data/ holds hello.db, add a .gitignore ignoring data/*.db and node_modules).
+3. Write README.md: what it is, how to run (npm run seed && npm start, open http://localhost:3000).
+4. Write CONTRACT.md — the binding contract all other agents build against. It must specify EXACTLY:
+   - src/db.js exports `export function getMessage()` returning the message string from SQLite, or null if no row exists; opens DB at path data/hello.db resolved relative to the project root (use `new URL('../data/hello.db', import.meta.url)`); uses `import { DatabaseSync } from 'node:sqlite'`.
+   - src/seed.js: idempotent, creates table `messages(id INTEGER PRIMARY KEY, body TEXT NOT NULL)` and ensures one row with body 'hello world'; logs what it did; run via `npm run seed`.
+   - src/server.js: node:http server on PORT env or 3000; GET /api/message -> 200 JSON {"message":"hello world"}; if getMessage() returns null -> 503 JSON {"error":"no message in database"}; on unexpected error -> 500 JSON {"error":"..."} and console.error with stack; serves static files from public/ (/ -> public/index.html, plus .html .css .js .svg .woff2 with correct content types); unknown path -> 404 JSON {"error":"not found"}; logs `listening on http://localhost:PORT` at startup.
+   - public/index.html: owned by frontend agent. Must contain these exact DOM hooks so CSS can target them: body class `page`; <main class="hero"> wrapper; <section class="card"> ; the message element `<p id="message" class="message">`; a status/error element `<p id="status" class="status">`; loading state via `data-state="loading"|"ready"|"error"` attribute on the .card element. index.html links <link rel="stylesheet" href="/styles.css"> and <script type="module" src="/app.js"></script>.
+   - public/app.js: owned by frontend agent, fetches /api/message.
+   - public/styles.css: owned by visual-design agent, styles ONLY the hooks above (.page, .hero, .card, .message, .status, [data-state]).
+   - File ownership table so agents never edit each other's files.
+Do not create src/db.js, src/seed.js, src/server.js, public/index.html, public/app.js or public/styles.css yourself — other agents own those. Report the final file list and the contract summary.
+
+I'll inspect the working directory first.
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls -a && find . -maxdepth 2 -not -path './.git/*' && node --version && npm --version","timeout":3…
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/VALIDATION.md","offset":1,"limit":60}
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && node -e \"import('node:sqlite').then(m=>console.log('node:sqlite OK', typeof m.DatabaseSync)).cat…
+`node:sqlite` works (with an ExperimentalWarning — I'll note that in the contract). Writing scaffold files now.
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/package.json","content":"{\n \"name\": \"hello-world\",\n \"version\": \"1.0.0\",\n \"private\": true,\n \…
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/.gitignore","content":"node_modules/\ndata/*.db\ndata/*.db-journal\n.env\n.DS_Store\n"}
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/data/.gitkeep","content":""}
+
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/README.md","content":"# hello-world\n\nA tiny webapp that reads the string `hello world` from a SQLite dat…
+
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","content":"# CONTRACT.md\n\nBinding contract for the `hello-world` webapp. Every agent builds…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && mkdir -p src public && node -e \"import('./package.json',{with:{type:'json'}}).then(m=>console.lo…
+Scaffold complete.
+
+## 1. Stack
+**Plain Node.js v22.21.1, zero npm dependencies** — built-in `node:sqlite` (`DatabaseSync`) + `node:http`, ESM (`"type": "module"`). Verified: `node --version` → v22.21.1, `npm` 10.9.4, and `import('node:sqlite')` resolves `DatabaseSync` as a function. No Express/better-sqlite3 needed, so **no `npm install` step exists and none should be added** (per AGENTS.md §1/§9: the environment already provides the capability). Note: `node:sqlite` emits an `ExperimentalWarning` on stderr — expected, documented in the contract, must not be treated as a failure.
+
+## 2. File tree created
+```
+package.json      scaffolder  (done — scripts seed/start, engines node>=22)
+.gitignore        scaffolder  (done — node_modules/, data/*.db, .env, .DS_Store)
+README.md         scaffolder  (done)
+CONTRACT.md       scaffolder  (done — binding contract)
+data/.gitkeep     scaffolder  (done — keeps dir; hello.db gitignored)
+src/              empty dir   (awaits db.js, seed.js, server.js)
+public/           empty dir   (awaits index.html, app.js, styles.css)
+```
+No stub source files were created — the owning agents create them outright, so there is nothing to clobber or delete.
+
+## 3. Contract essentials (pass verbatim)
+- **Port:** `process.env.PORT || 3000`; base `http://localhost:3000`; startup log exactly `listening on http://localhost:${port}`.
+- **API `GET /api/message`:** 200 `{"message":"hello world"}` · null → **503** `{"error":"no message in database"}` · throw → **500** `{"error":"..."}` + `console.error` with stack. Unknown path/non-GET → 404 `{"error":"not found"}`. All `application/json`.
+- **`src/db.js`:** `export function getMessage()` — **synchronous**, returns `string` | `null` (null also when table missing, i.e. unseeded DB must not throw), throws on unexpected SQLite errors. DB path **must** be `new URL('../data/hello.db', import.meta.url)`. Named export only.
+- **`src/seed.js`:** idempotent; `CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, body TEXT NOT NULL)`; ensures exactly one row `body='hello world'`; logs what it did; non-zero exit on failure.
+- **Static:** `public/` at web root; `/` → `index.html`; `/styles.css`, `/app.js`; types for `.html .css .js .svg .woff2`; reject `..` traversal.
+- **DOM hooks:** `<body class="page">` › `<main class="hero">` › `<section class="card" data-state="loading">` containing `<p id="message" class="message">` and `<p id="status" class="status" aria-live="polite">`. Head: `<link rel="stylesheet" href="/styles.css">`, `<script type="module" src="/app.js"></script>`. **State is only** `data-state="loading"|"ready"|"error"` on `.card` — no other state classes.
+- **CSS scope:** `.page, .hero, .card, .message, .status, [data-state=...]` only; must not demand new markup; responsive + `prefers-color-scheme` + `prefers-reduced-motion`.
+- **Run:** `npm run seed && npm start`, then the curl sequence in CONTRACT.md §9.
+
+## 4. npm install
+**Not run and not required** — zero dependencies by design. `package.json` validated as loadable JSON with the correct scripts.
+
+## 5. Deviations / cautions
+- No `node_modules`, no lockfile: downstream agents must not introduce one.
+- `src/` and `public/` are empty directories (git won't track them until files land); the owning agents create their files directly — that is intentional, no stubs to overwrite.
+- Watch out: `getMessage()` is **sync**, not a Promise — the backend agent must not `await`-assume a Promise contract (awaiting a string still works, but the 503/500 branching must handle the sync signature and the `null` case explicitly).
+
+
+✔ done

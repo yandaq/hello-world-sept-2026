@@ -1,0 +1,71 @@
+━━ frontend-ui-agent ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. Read CONTRACT.md and AGENTS.md first. The app works end-to-end; the user says it is NOT visually stunning enough, so we are upgrading the visual layer. Your job is ONLY to widen the markup so the stylesheet has richer hooks.
+
+You own ONLY: public/index.html and public/app.js. Do NOT touch public/styles.css (the visual-design agent is rewriting it in parallel), src/*, CONTRACT.md, README.md or package.json. No inline styles, no <style> blocks, no frameworks, no CDN, no external fonts or images.
+
+Rewrite public/index.html body to EXACTLY this structure (class/id names are a binding contract with the CSS agent working in parallel — do not rename, reorder or omit anything):
+
+<body class="page">
+  <div class="backdrop" aria-hidden="true">
+    <span class="orb orb--1"></span>
+    <span class="orb orb--2"></span>
+    <span class="orb orb--3"></span>
+    <span class="grain"></span>
+  </div>
+  <main class="hero">
+    <section class="card" data-state="loading">
+      <p class="eyebrow">SQLite · live</p>
+      <h1 class="title">Message of the day</h1>
+      <p id="message" class="message"></p>
+      <p id="status" class="status" aria-live="polite">Loading message…</p>
+      <footer class="meta">
+        <span class="meta__dot" aria-hidden="true"></span>
+        <span class="meta__text">data/hello.db › messages</span>
+      </footer>
+    </section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+
+Keep <html lang="en">, charset, viewport, <title>, meta description and <link rel="stylesheet" href="/styles.css"> in the head. Accessibility must hold: decorative elements are aria-hidden, #status keeps aria-live="polite", the h1 remains the page heading.
+
+public/app.js: keep the existing behaviour exactly (fetch /api/message; 200 -> #message.textContent = data.message, clear #status, card data-state="ready"; failure -> #status readable error text, data-state="error", console.error). Only adjust it if the markup change requires it. textContent only.
+
+Verify: node --check public/app.js, and re-read your index.html to confirm the structure matches character-for-character in class names. Report the final structure.
+
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/index.html","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/app.js","offset":null,"limit":null}
+
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/index.html","content":"<!DOCTYPE html>\n<html lang=\"en\">\n <head>\n <meta charset=\"utf-8\">\n <m…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && node --check public/app.js && echo OK && grep -n 'class=\\|id=\\|data-state\\|aria-' public/index…
+Done.
+
+**Files changed:** `public/index.html` (body rewritten). `public/app.js` — unchanged; behaviour and selectors (`.card`, `#message`, `#status`) still resolve since the module script is deferred, `node --check` passes.
+
+**Final body structure (character-for-character as specified):**
+- `<body class="page">`
+  - `<div class="backdrop" aria-hidden="true">` → `<span class="orb orb--1">`, `.orb.orb--2`, `.orb.orb--3`, `<span class="grain">`
+  - `<main class="hero">` → `<section class="card" data-state="loading">`
+    - `<p class="eyebrow">SQLite · live</p>`
+    - `<h1 class="title">Message of the day</h1>` (sole page heading)
+    - `<p id="message" class="message"></p>`
+    - `<p id="status" class="status" aria-live="polite">Loading message…</p>`
+    - `<footer class="meta">` → `<span class="meta__dot" aria-hidden="true">`, `<span class="meta__text">data/hello.db › messages</span>`
+  - `<script type="module" src="/app.js"></script>`
+
+**Head:** `lang="en"`, charset, viewport, title, meta description, `<link rel="stylesheet" href="/styles.css">` (script moved from head to end of body per the required structure).
+
+**CSS hooks for the design agent:** `.page`, `.backdrop`, `.orb`/`.orb--1|2|3`, `.grain`, `.hero`, `.card[data-state="loading"|"ready"|"error"]`, `.eyebrow`, `.title`, `.message`, `.status`, `.meta`, `.meta__dot`, `.meta__text`. State is still expressed only via `data-state` on `.card`.
+
+Note: CONTRACT.md §6/§8 lists a narrower hook set (`.page`, `.hero`, `.card`, `.message`, `.status`); this task's structure adds `.backdrop/.orb/.grain/.eyebrow/.title/.meta*`. Contract text may need updating by its owner — I did not edit it.
+
+
+✔ done

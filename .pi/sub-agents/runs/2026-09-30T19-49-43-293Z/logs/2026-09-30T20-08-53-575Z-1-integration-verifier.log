@@ -1,0 +1,102 @@
+━━ integration-verifier ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. The frontend markup (public/index.html) and stylesheet (public/styles.css) were just rewritten for a much richer visual design; CONTRACT.md §6/§8 were updated to match. Backend (src/*) is unchanged and previously passed.
+
+Verify end-to-end AND visually, and fix anything broken (minimal, in the owning file).
+
+1. Functional regression: `npm run seed` (idempotent, also from clean), `npm start` logs `listening on http://localhost:3000`; curl /api/message -> 200 {"message":"hello world"}; / -> 200 html; /styles.css -> 200 text/css; /app.js -> 200; /nope -> 404 {"error":"not found"}; missing-DB -> 503 {"error":"no message in database"} and server stays up; then reseed -> 200.
+2. Markup/CSS consistency: confirm every hook the CSS targets exists in index.html and vice versa (.page .backdrop .orb--1/2/3 .grain .hero .card[data-state] .eyebrow .title #message.message #status.status .meta .meta__dot .meta__text). Report any orphan selector or unstyled element.
+3. REQUIRED visual verification with a real headless browser (Playwright's cached chrome-headless-shell at ~/Library/Caches/ms-playwright/ worked last time; do not install anything new). Load http://localhost:3000, wait for data-state="ready", then:
+   - assert #message.textContent === 'hello world' and #status is empty;
+   - capture a full-page PNG screenshot at 1440x900 (dark mode / prefers-color-scheme: dark) AND a second at 390x844 (mobile), AND a third at 1440x900 with prefers-color-scheme: light;
+   - SAVE the screenshots into the repo at screenshots/desktop-dark.png, screenshots/mobile-dark.png, screenshots/desktop-light.png and actually LOOK at them by reading the image files with your read tool.
+   - Judge them critically as a designer: is the message legible and dominant? Are the orbs visible or washed out/invisible? Is the card readable against the backdrop? Any clipped text, overflow, horizontal scrollbar, invisible low-contrast text, or gradient text rendering as transparent/blank? Any element sitting behind the backdrop due to z-index/stacking-context problems (backdrop-filter and mix-blend-mode are common culprits)?
+   - Also capture the loading state (throttle or intercept /api/message to delay) if feasible, and the error state (stop DB) at 1440x900, and check they look intentional.
+4. Check the browser console for errors/warnings and the server log for anything beyond the expected node:sqlite ExperimentalWarning.
+5. FIX any visual defect you find directly in public/styles.css (or public/index.html if markup is genuinely at fault), then re-screenshot and re-inspect until the page looks genuinely polished. Report before/after for each fix.
+6. Add screenshots/ to .gitignore ONLY if you think the PNGs shouldn't be committed; otherwise leave them.
+
+Kill all background servers and browsers when done. Report a PASS/FAIL table, your honest design critique of the final screenshots, and every fix you made.
+
+I'll start by orienting myself in the project.
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls -la && echo \"---\" && find . -type f -not -path './node_modules/*' -not -path './.git/*' | he…
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","offset":null,"limit":null}
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/index.html","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/app.js","offset":null,"limit":null}
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/styles.css","offset":null,"limit":null}
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/package.json","offset":null,"limit":null}
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && cat .gitignore && echo \"=== node ===\" && node -v && echo \"=== playwright cache ===\" && ls ~/L…
+
+
+▸ bash {"command":"ls ~/Library/Caches/ms-playwright/chromium_headless_shell-1234/ 2>&1; find ~/.npm/_npx -maxdepth 4 -name \"playwright*\" -type d 2>/dev/null | head;…
+Playwright is cached. Now the functional regression.
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && rm -f data/hello.db && echo \"--- seed #1 (clean) ---\" && npm run seed 2>&1 && echo \"--- seed #…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && lsof -ti:3000 | xargs -r kill -9 2>/dev/null; (npm start > /tmp/hw-server.log 2>&1 &) ; for i in …
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && mv data/hello.db /tmp/hello.db.bak && echo \"=== missing DB ===\" && curl -s -w \" [%{http_code} …
+Functional regression is fully green. Now markup/CSS consistency.
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && node -e '\nconst fs=require(\"fs\");\nconst css=fs.readFileSync(\"public/styles.css\",\"utf8\");\…
+Markup ↔ CSS is a perfect 1:1 match. Now the headless-browser visual verification.
+
+▸ write {"path":"/tmp/shot.mjs","content":"import { chromium } from '/Users/iancarroll/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/index.mjs';\nimport fs from 'n…
+
+
+▸ bash {"command":"cd /tmp && node shot.mjs all 2>&1 | tail -140","timeout":300}
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/screenshots/desktop-dark.png","offset":null,"limit":null}
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/screenshots/desktop-light.png","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/screenshots/mobile-dark.png","offset":null,"limit":null}
+Three ready-state shots look strong. Now the loading and error states.
+
+▸ bash {"command":"cd /tmp && node shot.mjs loading 2>&1 | grep -E \"===|state|message|status|PROBLEM|console|msgBox|cardBox|hScroll\" | head -30\ncd /Volumes/External…
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/screenshots/state-loading.png","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/screenshots/state-error.png","offset":null,"limit":null}
+Loading state is good. Two real defects found: (A) in **ready**, the empty `#status` still reserves `min-height:1.4em` + margin, leaving an unbalanced hole above `.meta`; (B) in **error**, the empty `.message` reserves `min-height:1.06em` at 112px plus its glow, leaving a ~220px void. Fixing both in the owning file.
+
+▸ edit {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/styles.css","edits":[{"oldText":".card[data-state=\"ready\"] .status {\n animation-delay: 260ms;\n}…
+
+
+▸ bash {"command":"cd /tmp && sed -i '' \"s/animations: 'disabled'/animations: process.env.ANIM ? 'allow' : 'disabled'/\" shot.mjs && cd /Volumes/ExternalSSD/Dropbox/D…
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/screenshots/state-error.png","offset":null,"limit":null}
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/screenshots/desktop-dark.png","offset":null,"limit":null}
+There's a faint rectangular seam at the lower-left of the card in both dark shots. Let me isolate it.
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && sips -c 700 1000 --cropOffset 1000 300 screenshots/desktop-dark.png --out /tmp/crop.png >/dev/nul…
+
+
+▸ read {"path":"/tmp/crop.png","offset":null,"limit":null}
+
+
+▸ write {"path":"/tmp/diag.mjs","content":"import { chromium } from '/Users/iancarroll/.npm/_npx/e41f203b7505f1fb/node_modules/playwright/index.mjs';\nconst browser = a…
+
+
+▸ bash {"command":"cd /tmp && node diag.mjs && cd /tmp && python3 - <<'EOF'\nimport subprocess\n# montage isn't available; just report mean brightness of left-strip vs…
+
+
+▸ read {"path":"/tmp/diag-base.png","offset":null,"limit":null}
+
+▸ read {"path":"/tmp/diag-no-backdrop-filter.png","offset":null,"limit":null}

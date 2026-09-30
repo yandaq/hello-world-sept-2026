@@ -1,0 +1,51 @@
+━━ frontend-ui-agent ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. READ /Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md FIRST and obey it exactly (sections 6 and 7). Also obey AGENTS.md.
+
+You own ONLY: public/index.html and public/app.js. Do NOT create or edit public/styles.css (another agent owns it, in parallel), src/*, or package.json. No inline styles, no <style> blocks, no frameworks, no CDN links.
+
+public/index.html: valid semantic accessible HTML5 — <html lang="en">, <meta charset>, <meta name="viewport">, <title>, <body class="page">, <main class="hero"> containing <section class="card" data-state="loading"> with a heading (e.g. <h1>) , <p id="message" class="message"> and <p id="status" class="status" aria-live="polite">. Head links <link rel="stylesheet" href="/styles.css">; script `<script type="module" src="/app.js"></script>`. Initial status text should read like 'Loading message…'. Exact hook names matter — the stylesheet targets only .page, .hero, .card, .message, .status and [data-state]. You may add small extra structural elements inside the card only if they are not required for styling; prefer minimal markup.
+
+public/app.js: ES module, no imports. On load fetch('/api/message'); on 200 set #message textContent to data.message, clear #status, set card data-state="ready"; on non-2xx or network failure set #status to a readable message (prefer the response JSON's `error` field), set data-state="error", and console.error the failure. textContent only, never innerHTML.
+
+Verify: `node --check public/app.js`. Report the final markup hooks you emitted.
+
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","offset":null,"limit":null}
+
+▸ ls {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world"}
+
+
+▸ ls {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public"}
+
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/index.html","content":"<!DOCTYPE html>\n<html lang=\"en\">\n <head>\n <meta charset=\"utf-8\">\n <m…
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/app.js","content":"const card = document.querySelector('.card');\nconst messageEl = document.getEle…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && node --check public/app.js && echo OK","timeout":30}
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && grep -n 'styles.css\\|app.js\\|data-state\\|id=\"' public/index.html","timeout":30}
+Done.
+
+**Files created (only these):**
+- `public/index.html`
+- `public/app.js`
+
+**Markup hooks emitted (exactly the contract set, nothing extra needing styles):**
+- `<body class="page">`
+- `<main class="hero">`
+- `<section class="card" data-state="loading">` — states: `loading` (initial) → `ready` | `error`
+- `<h1>Hello World</h1>` (only extra element, plain heading — no class, style via `.card h1` if desired)
+- `<p id="message" class="message">` — empty initially, filled with `data.message` via `textContent`
+- `<p id="status" class="status" aria-live="polite">Loading message…</p>` — cleared on success, error text on failure
+- Head: `<link rel="stylesheet" href="/styles.css">`, `<script type="module" src="/app.js"></script>`; `lang="en"`, charset, viewport, title, description.
+
+**Behaviour:** `fetch('/api/message')`; 200 + string `message` → ready; non-2xx → uses response JSON `error` field when present, else `request failed (<status>)`; network/parse failure → readable fallback text; all failures `console.error`'d with the underlying error. `textContent` only, no imports, no inline styles.
+
+`node --check public/app.js` → OK. Note: the script uses top-level `await` (valid in an ES module); it is loaded with `type="module"` so it runs after DOM parse.
+
+
+✔ done

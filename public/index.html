@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hello World — SQLite message</title>
+    <meta name="description" content="A tiny webapp that reads a message from a SQLite database and displays it.">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="page">
+    <div class="backdrop" aria-hidden="true">
+      <span class="orb orb--1"></span>
+      <span class="orb orb--2"></span>
+      <span class="orb orb--3"></span>
+      <span class="grain"></span>
+    </div>
+    <main class="hero">
+      <section class="card" data-state="loading">
+        <p class="eyebrow">SQLite · live</p>
+        <h1 class="title">Message of the day</h1>
+        <p id="message" class="message"></p>
+        <p id="status" class="status" aria-live="polite">Loading message…</p>
+        <footer class="meta">
+          <span class="meta__dot" aria-hidden="true"></span>
+          <span class="meta__text">data/hello.db › messages</span>
+        </footer>
+      </section>
+    </main>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

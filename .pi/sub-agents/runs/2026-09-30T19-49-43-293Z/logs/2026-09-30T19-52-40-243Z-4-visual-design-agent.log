@@ -1,0 +1,45 @@
+━━ visual-design-agent ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. READ /Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md FIRST and obey section 8 exactly.
+
+You own ONLY: public/styles.css. Do NOT create or edit public/index.html, public/app.js (being written in parallel), src/*, README or package.json. Do not add font/image files; keep the CSS fully self-contained (system font stack, CSS gradients, no @import, no external CDN).
+
+Deliver a genuinely visually stunning single stylesheet for a one-message hero page. Available hooks ONLY: body.page, main.hero, section.card (with data-state="loading"|"ready"|"error"), h1 inside the card, p#message.message, p#status.status. Style descendants/pseudo-elements of those, :root custom properties, @media and @keyframes as needed — but the CSS must not require any markup that isn't listed.
+
+Design direction: full-viewport animated mesh/aurora gradient background, centred glassmorphism card (backdrop-filter blur, translucent border, layered soft shadow), large gradient-clipped display type for .message, refined letter-spaced uppercase micro-label styling for .status, smooth entrance animation (fade + rise) on load, subtle pulsing/shimmer skeleton look while [data-state="loading"], calm confident look at [data-state="ready"], and a red-tinted accent treatment at [data-state="error"]. Fully responsive with fluid clamp() typography, a light and dark palette via prefers-color-scheme, and all animation disabled under prefers-reduced-motion. Include a :focus-visible style. Make it tasteful, not gaudy.
+
+Verify the file parses as CSS (balanced braces; no invalid at-rules) and report the selectors and state treatments you implemented.
+
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","offset":null,"limit":null}
+
+▸ ls {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world"}
+
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/styles.css","content":"/* =========================================================================…
+
+
+▸ edit {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/styles.css","edits":[{"oldText":".card h1 {\n margin: 0;","newText":"/* Content sits above the card…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && node -e '\nconst s=require(\"fs\").readFileSync(\"public/styles.css\",\"utf8\");\nlet d=0,min=0; …
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && grep -nE 'class=|id=|data-state' public/index.html","timeout":30}
+**File:** `public/styles.css` (only file created/edited; 14.5 KB, braces balanced 0/0, at-rules limited to `@supports`/`@media`/`@keyframes`).
+
+**Selectors implemented (all within CONTRACT §8 scope):**
+- Contract hooks: `.page`, `.hero`, `.card`, `.card h1`, `.message`, `.status`, `.card[data-state="loading"|"ready"|"error"]` and their descendants.
+- Pseudo-elements/derived only: `.page::before`/`::after` (aurora + veil), `.card::before` (top sheen), `.card[data-state="error"]::after` (red tint wash), `.status::before` (state dot), `.message:empty`, `:focus-visible`, `:root` tokens. No new markup required — verified against the shipped `public/index.html` hooks (`body.page` / `main.hero` / `section.card[data-state]` / `p#message.message` / `p#status.status`).
+
+**State treatments:**
+- `loading` — `.message` becomes a pill-shaped skeleton (`min-height` matched to the display type) with a travelling `shimmer` sweep; `.status` breathes (opacity pulse). `.message:empty` stays rendered only in this state.
+- `ready` — calm: gradient-clipped display type with a slow `hue-glide`, green status dot, inset hairline highlight, no motion noise.
+- `error` — red-tinted border + radial wash, red gradient headline, and `.status` reframed as a legible monospace pill (sentence case, no letter-spacing) for error text.
+
+**Design:** self-contained system-font stack; full-viewport four-blob mesh aurora (violet / cyan / pink / mint) drifting over 34 s behind a centred glassmorphism card (`backdrop-filter: blur()` behind `@supports`, with an opaque fallback background), layered soft shadows, 28 px radius. Fluid `clamp()` type throughout, uppercase letter-spaced micro-labels for `h1`/`.status`, staggered fade+rise entrance on hero → card → heading → message → status. Breakpoints at 640 px, 1024 px, plus a short-viewport (`max-height: 460px`) adjustment. Dark mode overrides tokens only (deep navy base, softened aurora, lighter gradient stops, darkened veil). `prefers-reduced-motion: reduce` disables every animation/transition and swaps the shimmer for a static skeleton; `:focus-visible` gives a 2 px offset ring in both palettes.
+
+**Wished-for hook:** none — the contract's hooks were sufficient. (A wrapper around `#message` would have allowed a separate skeleton element rather than restyling `.message` itself, but the current approach needs no markup change.)
+
+
+✔ done

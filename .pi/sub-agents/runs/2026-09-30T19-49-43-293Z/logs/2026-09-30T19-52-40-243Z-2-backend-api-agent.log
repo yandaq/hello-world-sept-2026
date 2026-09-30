@@ -1,0 +1,52 @@
+━━ backend-api-agent ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. READ /Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md FIRST and obey it exactly (section 5). Also obey AGENTS.md (simplicity, zero npm dependencies).
+
+You own ONLY: src/server.js. Do NOT create or edit src/db.js, src/seed.js, public/* or package.json. src/db.js is being written in parallel by another agent and will export a SYNCHRONOUS `getMessage()` returning string|null and throwing on unexpected errors — import it as `import { getMessage } from './db.js';` and code against that contract even though the file may not exist yet while you work.
+
+Implement src/server.js with node:http only:
+- port process.env.PORT || 3000; on listen log exactly `listening on http://localhost:${port}`.
+- GET /api/message: row -> 200 application/json {"message":"..."}; null -> 503 {"error":"no message in database"}; thrown -> 500 {"error":"<readable>"} plus console.error with the stack. Never crash the process on a request.
+- Static from public/ (resolve with new URL('../public/', import.meta.url)): / -> index.html; content types for .html .css .js .svg .woff2 per contract; reject path traversal ('..' / anything resolving outside public/).
+- Anything else (unknown path, unknown extension, non-GET): 404 application/json {"error":"not found"}.
+Keep it small and readable, one file, no abstractions beyond a mime lookup map.
+
+Verification: if src/db.js does not yet exist when you finish coding, at minimum run `node --check src/server.js`. Then wait/retry briefly: if src/db.js exists, start the server and curl /api/message and /nope and report the actual outputs. Do not create a stub db.js. Report what you verified.
+
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","offset":null,"limit":null}
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls -la && ls -R src public 2>/dev/null && cat package.json 2>/dev/null","timeout":30}
+
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/src/server.js","content":"import { createServer } from 'node:http';\nimport { readFile } from 'node:fs/pro…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && node --check src/server.js && echo CHECK_OK; for i in $(seq 1 30); do [ -f src/db.js ] && break; …
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls data; (node src/server.js > /tmp/srv.log 2>&1 & echo $! > /tmp/srv.pid); sleep 2; echo \"--- /…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && (node src/server.js > /tmp/srv2.log 2>&1 & echo $! > /tmp/srv2.pid); sleep 2; echo \"body /api/me…
+Done. Created **`src/server.js`** only (no other files touched).
+
+**Implementation** — `node:http`, ESM, zero deps, ~80 lines:
+- Port `process.env.PORT || 3000`; logs exactly `listening on http://localhost:3000`.
+- `GET /api/message` → `getMessage()` from `./db.js` (sync): string → 200 `{"message":"..."}`; `null` → 503 `{"error":"no message in database"}`; throw → 500 `{"error":"failed to read message from database"}` + `console.error` with stack.
+- Static from `new URL('../public/', import.meta.url)`; `/` → `index.html`; MIME map for `.html .css .js .svg .woff2`; traversal rejected via `fileUrl.href.startsWith(PUBLIC_DIR.href)`.
+- Everything else (unknown path/extension, missing file, non-GET) → 404 `{"error":"not found"}`, `application/json`.
+
+**Verified** (db.js and data/hello.db existed by then; server started and killed each time):
+- `node --check src/server.js` → OK
+- `/api/message` → `200 application/json {"message":"hello world"}`
+- `/nope` → `404 {"error":"not found"}`
+- `/` → 200
+- `--path-as-is /../package.json` → 404 (no leak)
+- `POST /api/message` → 404
+- DB removed → `503 {"error":"no message in database"}`, server stayed up; restored → 200 again.
+
+Notes for the integration-verifier: the 500 path was not exercised at runtime (no way to force a SQLite failure without editing files I don't own) — reasoned through only. Static 404 for a missing-but-known extension logs nothing for `ENOENT` (expected) and logs the stack for other fs errors. `ExperimentalWarning` from `node:sqlite` appears on stderr as the contract anticipates.
+
+
+✔ done

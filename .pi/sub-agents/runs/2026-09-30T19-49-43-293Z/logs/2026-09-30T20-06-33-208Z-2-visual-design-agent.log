@@ -1,0 +1,68 @@
+━━ visual-design-agent ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. Read CONTRACT.md §8 and AGENTS.md first. The user judged the current page NOT visually stunning. REWRITE public/styles.css from scratch, aiming far higher.
+
+You own ONLY: public/styles.css. Do NOT touch public/index.html or public/app.js (the frontend agent is updating them in parallel), src/*, CONTRACT.md, README.md, package.json. Fully self-contained CSS: system font stack only, no @import, no external fonts, no CDN, no image files.
+
+The markup is being rewritten in parallel to EXACTLY this structure — style against it (it is binding; assume it exists even though the file on disk may still be the old version while you work):
+
+body.page
+  div.backdrop[aria-hidden]  (fixed, full-viewport, behind everything)
+    span.orb.orb--1 / span.orb.orb--2 / span.orb.orb--3
+    span.grain
+  main.hero
+    section.card[data-state="loading"|"ready"|"error"]
+      p.eyebrow          ("SQLite · live")
+      h1.title           ("Message of the day")
+      p#message.message  (filled with "hello world" on success)
+      p#status.status    (aria-live; "Loading message…" / error text; emptied on success)
+      footer.meta
+        span.meta__dot
+        span.meta__text  ("data/hello.db › messages")
+
+Design brief — go for genuinely award-winning, editorial, high-craft, not a generic bootstrap gradient:
+- Deep, rich, dark-first canvas (near-black with a subtle colour cast), with three large soft-blurred colour orbs (violet, cyan, warm magenta/amber) slowly drifting and scaling on independent long-duration keyframes behind the card — a real aurora, heavy blur radii, mix-blend-mode where it helps.
+- .grain: a CSS-only fine noise/texture overlay (e.g. repeating-conic or repeating-linear micro-pattern at very low opacity, or a tiny inline SVG data URI feTurbulence in a background-image) plus an optional subtle vignette, to kill the flat plastic look.
+- .card: premium glassmorphism — backdrop-filter blur+saturate behind @supports with a solid fallback, 1px translucent gradient border (border-image or a ::before mask trick), layered shadows (large ambient + tight contact), generous asymmetric padding, ~24-32px radius, and a soft specular highlight sweeping the top edge.
+- .eyebrow: tiny uppercase, heavy letter-spacing, muted, with a small glowing dot or rule; .title: restrained mid-size, tight tracking, medium contrast — it must NOT compete with the message.
+- .message: the hero moment. Huge fluid clamp() display type (roughly clamp(2.75rem, 11vw, 7rem)), tight line-height and negative letter-spacing, animated gradient text (background-clip:text) with a slow shimmer pass, plus a soft coloured text glow.
+- States: [data-state="loading"] shows a shimmering skeleton bar in place of .message and a pulsing .status; [data-state="ready"] triggers a staggered entrance — eyebrow, title, message, status, meta rising and fading in sequence with a spring-ish cubic-bezier, and the meta__dot pulsing green; [data-state="error"] shifts the palette to red/amber, tints the card border and glow, and makes .status a legible monospace error pill with a red dot.
+- Fluid responsive at every width (360px phone to ultrawide), :focus-visible ring, light palette via prefers-color-scheme: light that is equally considered (warm off-white, soft pastel orbs, ink text) — not an afterthought, and prefers-reduced-motion: reduce disabling all animation while keeping the static composition beautiful.
+
+Taste bar: it should look like a modern product landing page from Linear/Vercel/Stripe, not a CodePen demo. Avoid rainbow gaudiness; pick a tight, confident palette and commit.
+
+Verify braces balance and no invalid at-rules. Report the palette, selectors and per-state treatments.
+
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls -la && sed -n '1,200p' CONTRACT.md","timeout":30}
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls -l public && head -60 public/index.html && wc -l public/styles.css","timeout":30}
+
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/styles.css","content":"/* =========================================================================…
+
+
+▸ edit {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/public/styles.css","edits":[{"oldText":" --danger: #d13game;\n --danger: #cc2f46;","newText":" --danger: #…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && python3 - <<'EOF'\ns=open('public/styles.css').read()\nprint(\"braces\", s.count('{'), s.count('}…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && grep -n \"@import\" public/styles.css","timeout":20}
+Done — `public/styles.css` rewritten from scratch (20 KB, 110/110 braces, 269/269 parens, only `@media`/`@supports`/`@keyframes` at-rules; the lone `@import` hit is the word inside the header comment). No other file touched.
+
+**Palette (dark-first):** canvas near-black `#06070d` with a blue cast `#0b0d18`; ink `#f2f3f8` / soft `#b9bdd0` / mute `#7b8199`; accent trio violet `#7b5cff`, cyan `#2ad4d9`, ember-pink `#ff6fa5`, with amber `#ffb35c` + `#ff5f6d` reserved for error and `#3ddc97` for the ready beacon. Light mode is its own design: warm off-white `#f6f3ee`, ink `#14151c`, pastel orbs (lilac/aqua/blush) switched to `mix-blend-mode: multiply`, lighter grain, re-tuned shadow stack.
+
+**Selectors styled:** `:root` tokens, `.page`, `.backdrop` (+`::after` vignette), `.orb` `.orb--1/2/3`, `.grain`, `.hero`, `.card` (+`::before` masked 1px gradient hairline, `::after` specular sweep, `@supports` blur(34px) saturate(165%) with solid fallback), `.eyebrow` (+`::before` glow dot, `::after` rule), `.title`, `.message` (+`::after` colour glow), `.status`, `.meta`, `.meta__dot`, `.meta__text`, `:focus-visible`, `::selection`.
+
+**Per-state:**
+- `loading` — `.message` becomes a pill-shaped shimmering skeleton bar (sweeping gradient, 1.5s), glow dimmed, `.status` pulses.
+- `ready` — staggered `rise` spring entrance (`cubic-bezier(.18,.9,.24,1.02)`) at 0/80/160/260/340 ms across eyebrow→title→message→status→meta; message then runs an 11s gradient shimmer; `.meta__dot` turns green with a `beacon` halo pulse.
+- `error` — card border/shadow tokens shift to red+amber, message gradient becomes danger→amber, glow retints, `.status` becomes a monospace pill with red hairline border, tinted fill and a pulsing red dot; meta dot goes red; `.page:has(...)` retints orbs 1 & 2 (pure enhancement).
+
+Responsive at 640 (left-aligned editorial layout, smaller blur/radius), 1024, 1800 (64rem/72rem card, wider blur). `prefers-reduced-motion: reduce` kills every animation/transition but parks the message gradient at a good offset, flattens the skeleton and keeps the specular line visible so the static composition still reads.
+
+**Contract note:** CONTRACT.md §8 lists only `.page/.hero/.card/.message/.status`; per your binding spec I also styled `.backdrop/.orb/.grain/.eyebrow/.title/.meta/.meta__dot/.meta__text`. §8 should be updated to match the new markup — I did not edit it. Nothing else was wished for; no markup change needed.
+
+
+✔ done

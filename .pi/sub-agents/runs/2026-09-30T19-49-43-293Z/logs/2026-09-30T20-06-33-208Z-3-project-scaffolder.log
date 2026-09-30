@@ -1,0 +1,31 @@
+━━ project-scaffolder ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. You own CONTRACT.md. Two agents are working in parallel right now: one rewrites public/index.html + public/app.js, the other rewrites public/styles.css. Do NOT touch any file except CONTRACT.md.
+
+Update CONTRACT.md sections 6 and 8 only (leave 1-5, 7, 9 intact except where they reference the old hook list) so the documented DOM hook contract matches the new agreed markup:
+
+body.page > div.backdrop[aria-hidden="true"] (containing span.orb.orb--1, span.orb.orb--2, span.orb.orb--3, span.grain — all decorative) and main.hero > section.card[data-state="loading"|"ready"|"error"] containing p.eyebrow, h1.title, p#message.message, p#status.status[aria-live="polite"], footer.meta > span.meta__dot + span.meta__text. Head keeps <link rel="stylesheet" href="/styles.css">; body ends with <script type="module" src="/app.js"></script>.
+
+Section 8 should state that public/styles.css may style exactly those hooks plus their descendants/pseudo-elements, :root custom properties, @media, @supports and @keyframes; must stay self-contained (system fonts, no @import, no external assets); must support dark and light via prefers-color-scheme and honour prefers-reduced-motion.
+
+Keep the file's existing tone and formatting. Report the diff summary.
+
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","offset":1,"limit":400}
+
+
+▸ edit {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","edits":[{"oldText":"Required, exact DOM hooks — the stylesheet targets these and nothing els…
+Updated `/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md` only.
+
+**§6 `public/index.html`** — replaced the flat 5-hook bullet list with an ASCII tree of the agreed markup plus prose:
+- `body.page` → `div.backdrop[aria-hidden="true"]` (decorative `span.orb.orb--1|--2|--3`, `span.grain`) and `main.hero` → `section.card[data-state="loading"]`
+- card children in order: `p.eyebrow`, `h1.title`, `p#message.message`, `p#status.status[aria-live="polite"]`, `footer.meta > span.meta__dot + span.meta__text`
+- head keeps `<link rel="stylesheet" href="/styles.css">`; `<script type="module" src="/app.js"></script>` is the last element in `<body>`
+- `data-state` (`loading|ready|error`) remains the only state mechanism; heading requirement now points at the `<h1 class="title">`
+
+**§8 `public/styles.css`** — allowed-selector list expanded to the full new hook set (`.page`, `.backdrop`, `.orb`, `.orb--1..3`, `.grain`, `.hero`, `.card`, `.eyebrow`, `.title`, `.message`/`#message`, `.status`/`#status`, `.meta`, `.meta__dot`, `.meta__text`, `.card[data-state=…]`) plus descendants/pseudo-elements, `:root` custom properties, `@media`, `@supports`, `@keyframes`. Tightened the self-containment rule (system fonts only, no `@import`, no external/local assets) and made dark **and** light support via `prefers-color-scheme` plus `prefers-reduced-motion` explicit.
+
+§§1–5, 7, 9 untouched — §7 and §9 still reference `#message`, `#status`, `.card[data-state]`, which remain valid under the new markup.
+
+
+✔ done

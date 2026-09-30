@@ -1,0 +1,90 @@
+━━ sqlite-data-agent ━━
+Working dir: /Volumes/ExternalSSD/Dropbox/Dev/hello-world. READ /Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md FIRST and obey it exactly (sections 3 and 4). Also obey AGENTS.md (simplicity, no deps).
+
+You own ONLY: src/db.js, src/seed.js, and the generated data/hello.db. Do not create or edit any other file (no server.js, no HTML/CSS/JS in public/, no package.json changes).
+
+Implement:
+- src/db.js: `import { DatabaseSync } from 'node:sqlite'`, DB path `new URL('../data/hello.db', import.meta.url)`, single named export `getMessage()` that is SYNCHRONOUS and returns the body string, or null when the table is missing/empty (unseeded DB must not throw and must not create a schema), and throws on other SQLite errors. Close the DB handle after reading.
+- src/seed.js: idempotent; ensures data/ exists; CREATE TABLE IF NOT EXISTS messages (id INTEGER PRIMARY KEY, body TEXT NOT NULL); ensures exactly one row with body 'hello world'; logs what it did; exits non-zero with the error printed on failure.
+
+Verify yourself before reporting: run `npm run seed` twice (second run must say nothing to do and still be one row), then `node -e "import('./src/db.js').then(m=>console.log(m.getMessage()))"` prints hello world; then temporarily move data/hello.db aside and confirm getMessage() returns null without throwing, then restore/reseed. Report the commands and their actual output.
+
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/CONTRACT.md","offset":null,"limit":null}
+
+▸ ls {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world"}
+
+
+▸ read {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/package.json","offset":null,"limit":null}
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && ls -a data src public && node -v","timeout":30}
+
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/src/db.js","content":"import { DatabaseSync } from 'node:sqlite';\n\nconst DB_PATH = new URL('../data/hell…
+
+▸ write {"path":"/Volumes/ExternalSSD/Dropbox/Dev/hello-world/src/seed.js","content":"import { mkdirSync } from 'node:fs';\nimport { DatabaseSync } from 'node:sqlite';\…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && npm run seed 2>&1; echo \"--- second ---\"; npm run seed 2>&1; echo \"--- rows ---\"; node -e \"c…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && mv data/hello.db /tmp/hello.db.bak && echo \"--- missing db ---\" && node -e \"import('./src/db.j…
+
+
+▸ bash {"command":"cd /Volumes/ExternalSSD/Dropbox/Dev/hello-world && cat .gitignore && git status --short","timeout":30}
+Done. Only my owned files touched.
+
+## Files
+- `src/db.js` (created)
+- `src/seed.js` (created)
+- `data/hello.db` (generated, already gitignored via `data/*.db`)
+
+## Schema
+```sql
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY,
+  body TEXT NOT NULL
+);
+```
+
+## Contract for the backend agent
+- `import { getMessage } from './db.js';` — single named export, no default.
+- `getMessage(): string | null` — **synchronous**. Returns `'hello world'`; returns `null` when the DB file is absent, the `messages` table is absent, or the table is empty; throws on any other SQLite error. Opens read-only (`new DatabaseSync(DB_PATH, { readOnly: true })`) so reading never creates a file or schema, and closes the handle in a `finally`.
+- DB path: `new URL('../data/hello.db', import.meta.url)` in both files.
+- Seed command: `npm run seed`.
+
+## Verified output (actual)
+```
+$ npm run seed
+seeded 'hello world' into data/hello.db
+
+$ npm run seed          # second run
+data/hello.db already contains 1 message(s), nothing to do
+
+$ node -e "...SELECT * FROM messages..."
+[ [Object: null prototype] { id: 1, body: 'hello world' } ]      # exactly one row
+
+$ node -e "import('./src/db.js').then(m=>console.log(m.getMessage()))"
+hello world
+
+# data/hello.db moved aside
+$ node -e "import('./src/db.js').then(m=>console.log(m.getMessage()))"
+null                    # no throw, and `ls data` showed no hello.db was created
+
+# schema-only DB (table exists, zero rows)
+null
+
+# clean slate: rm data/hello.db && npm run seed
+seeded 'hello world' into data/hello.db
+hello world             # seeded DB left in place
+```
+(`ExperimentalWarning: SQLite is an experimental feature` appears on stderr as the contract expects.)
+
+## Assumptions / notes
+- No dependencies added; `package.json` untouched.
+- Missing-file detection matches `err.code === 'ERR_SQLITE_ERROR'` + `unable to open database file`; anything else rethrows, so the server's 500 path still works.
+- Seed's "nothing to do" message reports the existing row count, e.g. `data/hello.db already contains 1 message(s), nothing to do`.
+
+
+✔ done
