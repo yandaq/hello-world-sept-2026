@@ -1,8 +1,10 @@
 # hello-world
 
 A tiny webapp that reads the string `hello world` from a SQLite database and displays it on a
-visually stunning page. It uses plain Node.js with **zero npm dependencies**: the built-in
-`node:sqlite` driver for the database and `node:http` for the server. There is no build step.
+visually stunning page — a full-viewport CSS backdrop (aurora orbs, a bottom-left sunrise, film
+grain and a vignette) behind a glass card. It uses plain Node.js with **zero npm dependencies**: the
+built-in `node:sqlite` driver for the database and `node:http` for the server. There is no build
+step, and the whole backdrop is generated from gradients — no image, icon or font files.
 
 Requires Node.js >= 22 (for `node:sqlite`).
 
@@ -10,7 +12,7 @@ Requires Node.js >= 22 (for `node:sqlite`).
 
 ```bash
 npm run seed     # creates data/hello.db and ensures the 'hello world' row exists (idempotent)
-npm start        # starts the server
+npm start        # seeds first (same idempotent step), then starts the server
 ```
 
 Then open <http://localhost:3000>.
@@ -26,17 +28,29 @@ curl -s http://localhost:3000/api/message   # {"message":"hello world"}
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/   # 200
 ```
 
+`docs/VALIDATION.md` holds the full self-terminating check set (syntax gate, seed idempotency,
+API and static-route assertions, the empty-database 503 case and the rendered-browser evidence
+expected for stylesheet changes) together with `VALIDATION.md`, which defines the validation
+methodology.
+
 ## Layout
 
-| Path                | Purpose                                              |
-| ------------------- | ---------------------------------------------------- |
-| `src/db.js`         | Opens SQLite, exports `getMessage()`                 |
-| `src/seed.js`       | Idempotent schema + seed script                      |
-| `src/server.js`     | HTTP server: `/api/message` + static files           |
-| `public/index.html` | Page markup                                          |
-| `public/app.js`     | Fetches `/api/message` and renders it                |
-| `public/styles.css` | All styling                                          |
-| `data/hello.db`     | Generated SQLite database (gitignored)               |
-| `CONTRACT.md`       | Binding interface contract between all of the above  |
+| Path                       | Purpose                                             |
+| -------------------------- | --------------------------------------------------- |
+| `src/db.js`                | Opens SQLite, exports `getMessage()`                |
+| `src/seed.js`              | Idempotent schema + seed script                     |
+| `src/server.js`            | HTTP server: `/api/message` + static files          |
+| `public/index.html`        | Page markup                                         |
+| `public/app.js`            | Fetches `/api/message` and renders it               |
+| `public/styles.css`        | All styling (backdrop, sunrise, card, states)       |
+| `data/hello.db`            | Generated SQLite database (gitignored)              |
+| `screenshots/`             | Reference renders of the page and its card states   |
+| `CONTRACT.md`              | Binding interface contract between all of the above |
+| `VALIDATION.md`            | Validation methodology for coding agents            |
+| `docs/VALIDATION.md`       | This repo's executable checks and evidence rules    |
+| `docs/architecture.md`     | Modules, allowed dependencies, recorded trade-offs  |
+| `docs/coding-standards.md` | Standards as they apply in this repository          |
+| `docs/plans/`              | Dated historical plans (not current architecture)   |
 
-Note: `node:sqlite` prints an `ExperimentalWarning` on stderr. That is expected and harmless.
+Note: on Node.js 22, `node:sqlite` prints an `ExperimentalWarning` on stderr. That is expected and
+harmless; newer Node versions do not print it.

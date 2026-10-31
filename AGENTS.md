@@ -17,7 +17,7 @@ Before implementing:
 - State material assumptions explicitly.
 - If multiple interpretations exist, identify them rather than choosing silently.
 - Prefer the simplest interpretation consistent with the request.
-- Record minor assumptions in `PLAN.md` when working autonomously.
+- Record minor assumptions in the current plan under `docs/plans/` when working autonomously.
 - If a requirement is materially unclear or contradictory, stop and record the exact blocker rather than guessing.
 - If a simpler approach exists, say so and push back when warranted.
 
@@ -60,7 +60,7 @@ Every changed line should trace directly to the request or to work required to k
 - Identify constraints, invariants and affected public contracts.
 - Distinguish the requested outcome from a suggested implementation approach.
 - Prefer the smallest implementation that achieves the outcome.
-- For multi-step work, create a brief `PLAN.md` and work one step at a time unless explicitly instructed otherwise.
+- For multi-step work, create a brief plan and work one step at a time unless explicitly instructed otherwise. This repository keeps plans under `docs/plans/` (see `docs/plans/20261031-152950.md`); a plan there replaces a root `PLAN.md`.
 - Keep each plan step independently understandable and small enough to reason about.
 - Do not treat implementation activity as evidence of success; completion is governed by `VALIDATION.md`.
 
@@ -112,7 +112,7 @@ Before implementing a change:
 4. Identify where the change naturally belongs.
 5. Prefer changing the owning module over spreading conditional logic across callers.
 
-Document any necessary architectural compromise and its trade-off in `ARCHITECTURE.md`.
+Document any necessary architectural compromise and its trade-off in `docs/architecture.md`.
 
 ## 7. Context-Friendly Modularity
 
@@ -163,7 +163,7 @@ Ask: "Am I extending the system that is already here, or accidentally creating a
 
 **A change is not complete until the applicable validation defined in `VALIDATION.md` has passed.**
 
-- Read and follow `VALIDATION.md` for the validation process, evidence requirements and feedback loop.
+- Read and follow `VALIDATION.md` for the validation process, evidence requirements and feedback loop, and `docs/VALIDATION.md` for this repository's runnable checks.
 - Select validation checks according to the change, repository and risk; do not assume every check applies to every task.
 - Do not declare success based on code inspection or plausibility alone.
 - Do not weaken tests, suppress errors or bypass checks merely to make validation pass.

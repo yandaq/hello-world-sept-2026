@@ -1,370 +1,139 @@
-# VALIDATION.md
+# Validation — hello-world
 
-Validation rules for coding agents. This file defines how an implemented change is proved correct and how validation failures are fed back into the coding loop.
+The validation methodology — feedback loop, categories, failure evidence, "do not game
+validation", blocked-validation rules and completion evidence — is defined once, authoritatively,
+in [`../VALIDATION.md`](../VALIDATION.md). That file governs; this one does not restate it.
 
-> `AGENTS.md` defines **how agents engineer changes**.  
-> `VALIDATION.md` defines **how agents prove those changes are correct**.
+This document adds only what is specific to the `hello-world` app: the commands that make up the
+mandatory fast check set, and how the generic categories map onto this repository.
 
-## Core Rule
+## Fast check set (executable fence)
 
-**Implementation is not evidence. A change is complete only when the applicable validation demonstrates that the requested outcome was achieved without unacceptable regressions.**
+Run from the repository root. Every command is non-interactive and self-terminating: the block
+starts the server, probes it, and kills it (via `trap`) before returning.
 
-Validation should be proportional to the change:
-- Use the smallest useful checks while iterating.
-- Expand validation as confidence grows.
-- Run all applicable completion checks before declaring success.
-- Not every validation category applies to every change.
-- Higher-risk, broader or more user-visible changes require stronger evidence.
+```bash
+set -euo pipefail
+PORT=3199
+LOG=$(mktemp)
 
-## Validation Feedback Loop
+# Static gate — the app has no build step, so parse each module instead.
+node --check src/db.js
+node --check src/seed.js
+node --check src/server.js
+node --check public/app.js
 
-Use this loop for every non-trivial change:
+# Seed must be idempotent: two runs, same single row, no error.
+npm run --silent seed
+npm run --silent seed
 
-```text
-Define outcome
-    ↓
-Implement smallest change
-    ↓
-Run relevant validation
-    ↓
-Capture evidence
-    ↓
-Pass? ── yes ──→ Expand / final validation ──→ Complete
-  │
-  no
-  ↓
-Diagnose from failure evidence
-    ↓
-Feed precise failure back into coding
-    ↓
-Fix the cause
-    ↓
-Re-run the failed check
-    └───────────────────────────────────────────↺
+PORT=$PORT node src/server.js >"$LOG" 2>&1 &
+PID=$!
+trap 'kill "$PID" 2>/dev/null || true' EXIT INT TERM
+
+# Poll for readiness rather than sleeping a fixed amount.
+for _ in $(seq 1 50); do
+  curl -sf "http://localhost:$PORT/api/message" >/dev/null 2>&1 && break
+  sleep 0.1
+done
+
+[ "$(curl -sf "http://localhost:$PORT/api/message")" = '{"message":"hello world"}' ]
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/")"            = 200 ]
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/styles.css")"  = 200 ]
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/app.js")"      = 200 ]
+[ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:$PORT/nope")"        = 404 ]
+
+kill "$PID"; wait "$PID" 2>/dev/null || true
+cat "$LOG"
 ```
 
-### 1. Define the expected outcome
+Expected result: both seed runs report the row already present (second run prints
+`data/hello.db already contains 1 message(s), nothing to do`), every assertion holds, and the
+server log contains exactly `listening on http://localhost:3199`.
 
-Before validating, identify:
-- The requested user-visible or system-visible outcome.
-- The behaviour that must remain unchanged.
-- Any explicit acceptance criteria.
-- Relevant boundaries, failure cases and invariants.
-- Which validation categories below are applicable.
+On Node.js 22 `node:sqlite` additionally prints an `ExperimentalWarning` on stderr. Per
+`CONTRACT.md` §1 that line is expected and is not a failure; newer Node versions do not print it.
 
-Do not validate merely that code exists. Validate the behaviour the change was intended to produce.
+A port other than 3000 is used so the fence does not collide with a manually started dev server.
 
-### 2. Start with the narrowest useful check
+## Probe expectations
 
-During implementation:
-- Run the smallest relevant test, command or observable check first.
-- Prefer fast feedback over repeatedly running the entire suite.
-- Where practical, create or update a test that expresses the changed behaviour.
-- For bug fixes, reproduce the bug with a failing test or equivalent deterministic check before fixing it.
-- Confirm new tests fail for the expected reason before relying on them as evidence.
+These are the contract statements the fence above exercises (`CONTRACT.md` §5, §9).
 
-### 3. Capture failure evidence
+| Probe | Expected |
+| --- | --- |
+| `GET /api/message` with a seeded DB | `200 application/json`, `{"message":"hello world"}` |
+| `GET /api/message` with `data/hello.db` absent or unseeded | `503` `{"error":"no message in database"}`, server stays up |
+| `GET /` | `200 text/html; charset=utf-8` |
+| `GET /styles.css`, `GET /app.js` | `200`, correct `Content-Type` |
+| `GET /nope`, any non-`GET` method, path traversal | `404 application/json` `{"error":"not found"}` |
 
-When validation fails, preserve the useful diagnostic information:
-- Check or command that failed.
-- Exit code or failure status.
-- Relevant assertion, exception or compiler output.
-- Browser console or page errors where applicable.
-- Relevant logs or structured diagnostics.
-- Expected behaviour versus observed behaviour.
+The empty-database case cannot run inside the fence above without deleting the seeded file; run it
+separately when `src/db.js` or `src/server.js` changes:
 
-Do not reduce a failure to "it didn't work" when more precise evidence is available.
-
-### 4. Feed the failure back into the coding loop
-
-Use validation output as the next coding input.
-
-A useful failure report contains:
-
-```text
-Check:      [what was run]
-Expected:   [what should have happened]
-Observed:   [what actually happened]
-Evidence:   [error/assertion/log/console output]
-Cause:      [current diagnosis, if known]
-Next step:  [smallest change likely to address the cause]
+```bash
+npm run --silent seed
+mv data/hello.db /tmp/hello.db.bak
+PORT=3199 node src/server.js >/tmp/hw-503.log 2>&1 &
+PID=$!
+trap 'kill "$PID" 2>/dev/null || true' EXIT INT TERM
+# Poll for *any* HTTP response: the expected answer here is an error status.
+for _ in $(seq 1 50); do
+  curl -s -o /dev/null "http://localhost:3199/api/message" && break
+  sleep 0.1
+done
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3199/api/message   # 503
+kill "$PID"; wait "$PID" 2>/dev/null || true
+mv /tmp/hello.db.bak data/hello.db
 ```
 
-- Diagnose before editing.
-- Fix the cause, not merely the symptom presented by the check.
-- Keep the corrective change as small as possible.
-- Do not introduce unrelated refactoring while fixing validation failures.
-- If the failure exposes a wrong assumption, update the plan or acceptance criteria before continuing.
-
-### 5. Re-run after every fix
-
-After correcting a failure:
-1. Re-run the failed check.
-2. Run closely related checks that could have been affected.
-3. Once local validation passes, expand to the broader applicable validation set.
-4. Continue until all required checks pass or a genuine blocker is identified.
-
-Never assume a fix worked because the code now looks plausible.
-
-## Validation Categories
-
-These categories form the validation toolbox. Select the ones applicable to the change and repository.
-
-### 1. Build / Runtime
-
-**Does the software actually compile, package, start and run?**
-
-Validate as applicable:
-- Compilation or build succeeds.
-- Packaging succeeds.
-- Application or service starts successfully.
-- Changed commands or entry points execute.
-- Migrations, generated artefacts or startup steps complete when relevant.
-- Runtime does not immediately fail on the changed path.
-
-Use the repository's existing build and run commands.
-
-### 2. Observability
-
-**Do runtime signals show the system behaving correctly and expose failures clearly?**
-
-Inspect as applicable:
-- Process output.
-- Exceptions and stack traces.
-- Structured logs.
-- Browser console messages.
-- API responses.
-- Health or status endpoints.
-- Background-task or integration diagnostics.
-
-Treat unexpected errors as failures unless there is a specific, documented reason they are expected.
-
-Observability is both a validation input and a design requirement: `AGENTS.md` requires code to expose enough useful state for validation to be possible.
-
-### 3. Unit Tests
-
-**Do individual functions, classes or modules exhibit the required behaviour in isolation?**
-
-- Add or update meaningful coverage for changed behaviour.
-- Test observable behaviour rather than implementation details.
-- Include relevant happy paths, boundaries and failure paths.
-- Keep tests deterministic where practical.
-- Do not weaken, delete, skip or rewrite legitimate tests merely to make the implementation pass.
-- During development, run the smallest relevant test set first.
-
-### 4. Integration Tests
-
-**Do connected components work correctly together?**
-
-Validate interactions such as:
-- Module-to-module contracts.
-- Database access.
-- File-system behaviour.
-- Network or API boundaries.
-- Queues, events or background workers.
-- Framework integration.
-- External-service adapters.
-
-Prefer existing test fixtures, fakes, containers and repository conventions over inventing parallel infrastructure.
-
-### 5. End-to-End Validation
-
-**Does the complete user or system journey work through the real interface?**
-
-For browser-based applications:
-- Use Pi's built-in Playwright-compatible browser automation tools when available.
-- Do not install Playwright, Chromium or other browser-testing packages solely for validation when the execution environment already provides browser automation.
-- Exercise the changed behaviour through the user-facing interface.
-- Capture browser console messages during validation.
-- Treat unexpected browser console errors and unhandled page errors as failures.
-- Do not ignore console errors without documenting a specific, justified exception.
-- Do not add Playwright configuration, dependencies or committed test files unless the task explicitly requires them.
-- If the repository already has a browser test suite, use its documented commands without changing dependencies unless a missing dependency is confirmed.
-
-For non-browser systems, use the closest equivalent full journey through the public interface.
-
-### 6. Linting
-
-**Does the changed code conform to the project's static quality and style rules?**
-
-- Run the repository's configured linter on the changed scope during iteration.
-- Run the required project-level lint command before completion where applicable.
-- Treat newly introduced lint failures as defects.
-- Do not disable or suppress rules merely to make a check pass without justification.
-
-Examples may include `ruff`, `eslint` or repository-specific equivalents.
-
-### 7. Type Checking
-
-**Are type contracts internally consistent before runtime?**
-
-Run the repository's configured type checker where applicable.
-
-Examples may include:
-- `mypy`
-- `pyright`
-- `tsc`
-- language-native compiler checks
-
-Do not introduce broad casts, `Any`, suppression comments or equivalent escape hatches solely to silence a legitimate type error.
-
-### 8. Complexity
-
-**Has the change introduced code that is unnecessarily difficult to reason about or maintain?**
-
-Use the repository's configured complexity tooling when present.
-
-Where complexity checking is part of the validation harness:
-- Flag functions or methods that exceed the agreed threshold.
-- Refactor the local source of complexity rather than suppressing the warning.
-- Prefer simpler control flow and smaller coherent responsibilities.
-- Do not split code mechanically if doing so merely moves complexity elsewhere.
-
-`lizard` is one possible tool where the repository has chosen it.
-
-### 9. Duplication
-
-**Has the change introduced meaningful copy-and-paste duplication?**
-
-Use configured duplication checks when present.
-
-- Distinguish duplicated syntax from duplicated knowledge or business rules.
-- Remove duplication when multiple copies represent the same concept and should change together.
-- Do not force unrelated code into a shared abstraction merely because it looks similar.
-
-`jscpd` is one possible cross-language tool where the repository has chosen it.
-
-### 10. Security
-
-**Has the change introduced a vulnerability, unsafe dependency, exposed secret or dangerous execution path?**
-
-Validate according to the affected surface:
-- Dependency vulnerability checks.
-- Secret scanning.
-- Static security analysis.
-- Authentication and authorisation behaviour.
-- Input handling and injection risks.
-- Unsafe file, command or network operations.
-- Sensitive data exposure.
-- Repository-specific security gates.
-
-Treat security validation proportionally to risk. Do not claim a security property that has not actually been checked.
-
-### 11. Architectural Conformance
-
-**Does the change preserve the intended module boundaries, dependency rules and design constraints?**
-
-Check as applicable:
-- No forbidden dependency directions.
-- No new circular dependencies.
-- Public contracts remain coherent.
-- Business logic remains in the intended layer.
-- External systems remain behind defined boundaries.
-- New code extends existing abstractions rather than creating accidental parallel architectures.
-- Repository-specific architectural fitness rules still pass.
-
-Automate these checks where the repository provides tooling; otherwise inspect the affected dependency and module boundaries explicitly.
-
-### 12. Acceptance Criteria
-
-**Does the final behaviour explicitly satisfy what was requested?**
-
-This is the final outcome check.
-
-For each acceptance criterion:
-- State the criterion.
-- Identify the evidence that demonstrates it.
-- Confirm whether it passed.
-- Do not substitute passing technical checks for the requested user outcome.
-
-A build can pass while the feature is still wrong. Acceptance validation closes that gap.
-
-## Validation Order
-
-Use a fast-to-broad sequence where practical:
-
-```text
-Focused check
-→ Unit
-→ Static checks
-→ Integration
-→ Build / runtime
-→ E2E
-→ Architecture / security / quality gates
-→ Acceptance criteria
-```
-
-The exact order depends on the repository and change. Fail fast with cheap checks before running expensive ones.
-
-## Do Not Game Validation
-
-Never:
-- Delete or weaken a legitimate test because the implementation fails it.
-- Mark a test skipped solely to obtain a green result.
-- Suppress compiler, type, lint, security or runtime errors without a justified reason.
-- Change thresholds merely because the new code exceeds them.
-- Ignore browser console or unhandled runtime errors without documenting why they are acceptable.
-- Replace a meaningful assertion with a weaker one that no longer proves the behaviour.
-- Mock away the behaviour that the validation is supposed to prove.
-- Claim completion when required validation was not run.
-
-If a validation rule itself is wrong, treat changing that rule as a separate, explicit engineering decision.
-
-## Existing Failures
-
-If validation reveals a failure that predates the current change:
-- Confirm that it is genuinely pre-existing where possible.
-- Do not silently fix unrelated failures.
-- Record the failure and the evidence that it is unrelated.
-- Ensure the current change has not made it worse.
-- Continue only if the unrelated failure does not prevent meaningful validation of the requested change.
-
-## Blocked Validation
-
-If a required check cannot be run:
-- State exactly which check is blocked.
-- State why it cannot run.
-- Record any error or missing dependency.
-- Do not install tools or change the environment until confirming the capability is not already available.
-- Run the strongest remaining validation that is possible.
-- Do not describe the task as fully validated.
-
-Use a precise blocker rather than a vague caveat.
-
-## Completion Evidence
-
-Before declaring work complete, summarise the evidence concisely:
-
-```text
-Validation
-- [check]: PASS
-- [check]: PASS
-- [check]: PASS
-
-Acceptance criteria
-- [criterion]: PASS — [evidence]
-
-Not run
-- [check]: [reason, if applicable]
-
-Blockers
-- None
-```
-
-Only include checks that were actually run or explicitly assessed.
-
-## Definition of Done
-
-A coding change is complete when:
-- The requested outcome is implemented.
-- Applicable validation checks pass.
-- Relevant regressions have been checked.
-- Acceptance criteria are explicitly demonstrated.
-- Unexpected runtime, browser or diagnostic errors have been resolved or justified.
-- No validation mechanism was weakened merely to obtain a pass.
-- Any validation that could not be performed is clearly disclosed.
-- There is no unresolved blocker being hidden behind a completion claim.
-
----
-
-**This validation process is working when:** failures generate actionable evidence, that evidence drives the next coding step, fixes are re-tested rather than assumed, validation expands with confidence, and agents only declare success when the requested outcome is supported by passing evidence.
+## Category mapping for this repository
+
+| Category (`../VALIDATION.md`) | Applies here | How |
+| --- | --- | --- |
+| Build / Runtime | Yes | The fence: `node --check`, `npm run seed`, server boots and logs its listen line |
+| Observability | Yes | Server stdout/stderr in `$LOG`; the `500` path `console.error`s the stack |
+| Integration | Yes | Fence covers HTTP → `getMessage()` → SQLite and static routing |
+| End-to-End (browser) | Yes, for anything user-visible | See "Rendered validation" below |
+| Unit tests | No suite exists | No test runner is installed; see "Tooling absent from the repository" |
+| Linting / Type checking / Complexity / Duplication | No tooling configured | Nothing to run; do not add a linter or type checker for a scoped change |
+| Security | Only if the HTTP or file layer changes | Static handler must keep rejecting paths that escape `public/` |
+| Architectural conformance | Yes | `CONTRACT.md` file ownership (§2) and the stylesheet selector allow-list (§8) |
+| Acceptance criteria | Yes | State each criterion with its evidence, per `../VALIDATION.md` |
+
+## Rendered validation (presentational changes)
+
+`public/styles.css` drives the whole visual result, and its effects are not observable from
+`curl`. For any change to it:
+
+- Use Pi's built-in Playwright-compatible browser automation. **Do not install Playwright,
+  Chromium or any browser-testing dependency** — `CONTRACT.md` §1 forbids new dependencies and
+  there is no build step.
+- Capture, writing to `/tmp` rather than overwriting committed images: desktop dark (~1440×900),
+  desktop `prefers-color-scheme: light`, mobile (390×844), `prefers-reduced-motion: reduce`, and
+  the `loading` / `ready` / `error` card states.
+- Compare state captures against the committed references `screenshots/state-loading.png` and
+  `screenshots/state-error.png` for card-state behaviour. Note that the committed images
+  (`desktop-dark.png`, `desktop-light.png`, `mobile-dark.png`, `state-loading.png`,
+  `state-error.png`) predate the sunrise layer, so they are the reference for the card, layout and
+  state treatment — **not** for the backdrop, which has changed deliberately since they were taken.
+  Do not overwrite them as part of validating a presentational change.
+- Record browser console output and the network log. Unexpected console or page errors are
+  failures. A stylesheet-only change must add **no** new requests: the page must fetch only `/`,
+  `/styles.css` and `/app.js`, which is the observable form of `CONTRACT.md` §8's
+  self-contained / no-assets rule.
+- Check that the glass card's text remains legible over the backdrop in both colour schemes
+  (target WCAG AA).
+
+If no browser automation is available, treat this as a disclosed blocker
+(`../VALIDATION.md` → Blocked Validation): run the fence, review the selector and stacking change
+statically, and state the method actually used rather than claiming the page was seen.
+
+## Tooling absent from the repository
+
+The repository intentionally has no test runner, linter, formatter, type checker or build step
+(`CONTRACT.md` §1: no dependencies, no bundler, no TypeScript). Nothing above creates one, and
+`../VALIDATION.md`'s lint/type/complexity/duplication categories are not applicable rather than
+un-satisfied. That gap is recorded here as fact; it does not relax the standard that behaviour
+changes need evidence — for this app that evidence is the fence plus, for anything user-visible,
+rendered browser evidence.

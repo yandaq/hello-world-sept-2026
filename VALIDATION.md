@@ -5,6 +5,10 @@ Validation rules for coding agents. This file defines how an implemented change 
 > `AGENTS.md` defines **how agents engineer changes**.  
 > `VALIDATION.md` defines **how agents prove those changes are correct**.
 
+This file is the general methodology and is authoritative for it. The commands, probes and
+repository-specific evidence rules for this project are in
+[`docs/VALIDATION.md`](docs/VALIDATION.md).
+
 ## Core Rule
 
 **Implementation is not evidence. A change is complete only when the applicable validation demonstrates that the requested outcome was achieved without unacceptable regressions.**
