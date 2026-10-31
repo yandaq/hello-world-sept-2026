@@ -5,7 +5,7 @@
    Sections:
      1. Tokens
      2. Reset & base
-     3. Backdrop (aurora orbs, grain, vignette)
+     3. Backdrop (aurora orbs, sunrise, grain, vignette)
      4. Layout (hero)
      5. Card (glass)
      6. Typography (eyebrow, title, message, status, meta)
@@ -52,9 +52,24 @@
   --orb-blur: 90px;
   --orb-blend: screen;
 
+  /* sunrise — one bottom-left light source (disc, halo, rays, diagonal throw,
+     horizon wash) anchored at --sun-x/--sun-y and blended with --sun-blend.
+     --sun-alpha is the layer's full strength, --sun-breathe the dim phase as a
+     fraction of it, --sun-cycle the length of one breath. */
+  --sun-x: 14%;
+  --sun-y: 94%;
+  --sun-core: color-mix(in srgb, var(--amber) 88%, #fff);
+  --sun-glow: color-mix(in srgb, var(--amber) 62%, var(--ember));
+  --sun-ray: color-mix(in srgb, var(--amber) 70%, #fff);
+  --sun-alpha: 0.6;
+  --sun-blend: screen;
+  --sun-cycle: 24s;
+  --sun-breathe: 0.85;
+
   /* texture */
   --grain-alpha: 0.05;
   --vignette: rgba(0, 0, 0, 0.72);
+  --vignette-mid: rgba(0, 0, 0, 0.4);
 
   /* geometry */
   --radius-card: clamp(22px, 3.2vw, 32px);
@@ -199,6 +214,83 @@ html {
   animation: drift-3 52s var(--ease) infinite alternate;
 }
 
+/* sunrise — one bottom-left light source: a sunk disc, its halo, radiating rays
+   and a warm throw that runs along the diagonal to the far corner and pools
+   along the horizon. Every layer shares the --sun-x / --sun-y anchor, so it
+   reads as one sunrise rather than stacked blobs. z-index 1 lifts it above the
+   orbs it lights; the vignette (.backdrop::after, z-index 2) still paints on
+   top of it, and its softened mid stop is what keeps the warm pixels from being
+   crushed. All of it stays inside .backdrop, i.e. behind main.hero. */
+.backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: var(--sun-alpha);
+  mix-blend-mode: var(--sun-blend);
+  background-image:
+    /* rays: narrow spokes with transparent gaps */
+    repeating-conic-gradient(
+      from -46deg at var(--sun-x) var(--sun-y),
+      color-mix(in srgb, var(--sun-ray) 26%, transparent) 0deg 2.4deg,
+      transparent 2.4deg 12deg
+    ),
+    /* the disc, sunk so only its crown clears the bottom edge */
+    radial-gradient(
+      circle at var(--sun-x) var(--sun-y),
+      var(--sun-core) 0%,
+      color-mix(in srgb, var(--sun-glow) 85%, transparent) 2.6vmax,
+      transparent 7vmax
+    ),
+    /* halo: light thrown across the page, its falloff running to the far corner */
+    radial-gradient(
+      circle at var(--sun-x) var(--sun-y),
+      color-mix(in srgb, var(--sun-glow) 52%, transparent) 0%,
+      color-mix(in srgb, var(--ember) 19%, transparent) 24%,
+      color-mix(in srgb, var(--amber) 8%, transparent) 58%,
+      color-mix(in srgb, var(--ember) 5%, transparent) 84%,
+      transparent 100%
+    ),
+    /* the throw along the bottom-left -> top-right diagonal: it only builds in
+       the outer half of the page, so the light left behind the glass stays
+       faint while the far corner is still lit by the same source (the gradient
+       line runs corner to corner) */
+    linear-gradient(
+      to top right,
+      transparent 0%,
+      color-mix(in srgb, var(--ember) 7%, transparent) 48%,
+      color-mix(in srgb, var(--amber) 6%, transparent) 78%,
+      color-mix(in srgb, var(--amber) 4%, transparent) 100%
+    ),
+    /* horizon wash along the bottom edge */
+    linear-gradient(
+      to top,
+      color-mix(in srgb, var(--sun-glow) 30%, transparent) 0,
+      color-mix(in srgb, var(--ember) 12%, transparent) 9vh,
+      transparent 30vh
+    );
+  background-repeat: no-repeat;
+  /* fade everything with distance from the source, but keep a floor so the far
+     corner still sits in the light instead of dropping out of it */
+  -webkit-mask-image: radial-gradient(
+    circle at var(--sun-x) var(--sun-y),
+    #000 0%,
+    rgba(0, 0, 0, 0.75) 32%,
+    rgba(0, 0, 0, 0.5) 62%,
+    rgba(0, 0, 0, 0.38) 100%
+  );
+  mask-image: radial-gradient(
+    circle at var(--sun-x) var(--sun-y),
+    #000 0%,
+    rgba(0, 0, 0, 0.75) 32%,
+    rgba(0, 0, 0, 0.5) 62%,
+    rgba(0, 0, 0, 0.38) 100%
+  );
+  transform-origin: var(--sun-x) var(--sun-y);
+  animation: sun-breathe var(--sun-cycle) var(--ease) infinite;
+}
+
 /* fine film grain + vignette, pure CSS */
 .grain {
   position: absolute;
@@ -226,10 +318,11 @@ html {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  z-index: 2;
   background: radial-gradient(
     115% 85% at 50% 42%,
     transparent 38%,
-    color-mix(in srgb, var(--vignette) 55%, transparent) 78%,
+    color-mix(in srgb, var(--vignette-mid) 55%, transparent) 78%,
     var(--vignette) 100%
   );
 }
@@ -663,6 +756,20 @@ html {
   }
 }
 
+/* the glow breathing: the sun swells and brightens to full strength, then
+   settles back to --sun-breathe of it */
+@keyframes sun-breathe {
+  0%,
+  100% {
+    opacity: calc(var(--sun-alpha) * var(--sun-breathe));
+    transform: scale(1);
+  }
+  50% {
+    opacity: var(--sun-alpha);
+    transform: scale(1.04);
+  }
+}
+
 @keyframes card-in {
   from {
     opacity: 0;
@@ -812,8 +919,17 @@ html {
     --orb-alpha: 0.75;
     --orb-blend: multiply;
 
+    /* a warm wash, not a blown-out disc: pale core, soft rays, lower opacity */
+    --sun-core: color-mix(in srgb, var(--amber) 40%, #fff);
+    --sun-glow: color-mix(in srgb, var(--amber) 70%, var(--ember));
+    --sun-ray: color-mix(in srgb, var(--amber) 45%, #fff);
+    --sun-alpha: 0.4;
+    --sun-blend: multiply;
+    --sun-breathe: 0.9;
+
     --grain-alpha: 0.035;
     --vignette: rgba(120, 104, 88, 0.22);
+    --vignette-mid: rgba(120, 104, 88, 0.1);
 
     --shadow:
       0 1px 2px rgba(35, 30, 25, 0.06),
@@ -869,6 +985,13 @@ html {
 
   .card::after {
     opacity: 0.5;
+    transform: none;
+  }
+
+  /* the collapsed keyframe animation would leave the glow on its dim phase, so
+     pin the sunrise at full strength with the swell taken out of it */
+  .backdrop::before {
+    opacity: var(--sun-alpha);
     transform: none;
   }
 }
