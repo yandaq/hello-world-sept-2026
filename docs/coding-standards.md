@@ -16,7 +16,9 @@ These record how the standards above apply in this repository. They do not relax
   test runner, linter or formatter is installed, and none may be added to satisfy a check for a
   scoped change. Use what Node >= 22 and the repository already provide.
 - Because there is no compiler or linter, `node --check` on each touched module plus the executable
-  fence in `docs/VALIDATION.md` is the baseline static gate.
+  fence in `docs/VALIDATION.md` is the baseline static gate. The gate runs every non-comment fence
+  line as its own `/bin/sh` process, so a fence line must be self-contained: no state carried over
+  from the line above it, and no construct spanning lines.
 
 ### Evidence for behaviour changes
 
