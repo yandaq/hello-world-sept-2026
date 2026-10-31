@@ -47,9 +47,12 @@ if curl -s -o /dev/null --max-time 2 http://localhost:3199/api/message; then ech
 LOG=$(mktemp); PORT=3199 node src/server.js >"$LOG" 2>&1 & PID=$!; trap 'kill "$PID" 2>/dev/null || true' EXIT INT TERM; i=0; while [ "$i" -lt 50 ]; do curl -sf http://localhost:3199/api/message >/dev/null 2>&1 && break; i=$((i+1)); sleep 0.1; done; fail=0; probe() { if [ "$2" != "$3" ]; then echo "FAIL $1: expected [$3], got [$2]"; fail=1; fi; }; probe "GET /api/message body" "$(curl -sf http://localhost:3199/api/message)" '{"message":"hello world"}'; probe "GET /" "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3199/)" 200; probe "GET /styles.css" "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3199/styles.css)" 200; probe "GET /app.js" "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3199/app.js)" 200; probe "GET /nope" "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3199/nope)" 404; probe "listen log line count" "$(grep -c 'listening on http://localhost:3199' "$LOG")" 1; kill "$PID"; wait "$PID" 2>/dev/null || true; cat "$LOG"; [ "$fail" -eq 0 ]
 ```
 
-Expected result: both seed runs report the row already present (second run prints
-`data/hello.db already contains 1 message(s), nothing to do`), every probe holds, and the printed
-server log contains `listening on http://localhost:3199`.
+Expected result: on a fresh clone the first seed run prints `seeded 'hello world' into
+data/hello.db` (the database file is gitignored, so a clean checkout has none) and every later run
+prints `data/hello.db already contains 1 message(s), nothing to do`; every probe holds, and the
+printed server log contains `listening on http://localhost:3199`. The fence leaves a seeded
+`data/hello.db` in place (the empty-database line below re-seeds first, so it does not depend on
+what ran before it).
 
 On Node.js 22 `node:sqlite` additionally prints an `ExperimentalWarning` on stderr. Per
 `CONTRACT.md` §1 that line is expected and is not a failure; newer Node versions do not print it.
@@ -61,7 +64,12 @@ server on 3199 answers the route probes but has no listen log, so without the gu
 
 ## Probe expectations
 
-These are the contract statements the fences here exercise (`CONTRACT.md` §5, §9).
+These are the contract statements behind the fences (`CONTRACT.md` §5, §9). What the fences actually
+execute is narrower: the status codes of the routes they name — `/api/message` seeded and empty,
+`/`, `/styles.css`, `/app.js`, `/nope` — plus the two JSON bodies and the listen-log line. The
+remaining statements (`Content-Type` values, non-`GET` methods, path traversal) are contract
+behaviour the server implements but the fence does not probe; re-check them by review when
+`src/server.js` or `CONTRACT.md` §5 changes.
 
 | Probe | Expected |
 | --- | --- |

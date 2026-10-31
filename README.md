@@ -31,7 +31,8 @@ curl -s -o /dev/null -w '%{http_code}\n' http://localhost:3000/   # 200
 `docs/VALIDATION.md` holds the full self-terminating check set (syntax gate, seed idempotency,
 API and static-route assertions, the empty-database 503 case and the rendered-browser evidence
 expected for stylesheet changes) together with `VALIDATION.md`, which defines the validation
-methodology.
+methodology. Those checks start the server on port **3199** and refuse to run while another process
+is already serving it, so they can be run alongside a dev server on 3000.
 
 ## Layout
 

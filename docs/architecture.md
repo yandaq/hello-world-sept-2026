@@ -25,9 +25,10 @@ src/seed.js ──────────────────────�
 
 - The server **never** opens SQLite itself; it calls `getMessage()` (`CONTRACT.md` §5).
 - `src/db.js` exports exactly one named function, `getMessage()`. It is synchronous and returns
-  the row body, or `null` when the table is empty **or the database file does not exist yet** —
-  an unseeded database is a `null`, not a thrown error. Any other SQLite failure throws and the
-  server maps it to a 500.
+  the row body, or `null` when there is no message to return — the `messages` table is absent, the
+  table is empty, **or the database file does not exist yet**. An unseeded app is a `null`, not a
+  thrown error; opening the file read-only is what makes a missing file detectable rather than
+  silently created. Any other SQLite failure throws and the server maps it to a 500.
 - Both `src/db.js` and `src/seed.js` resolve the same file as
   `new URL('../data/hello.db', import.meta.url)`, so the app is independent of the current working
   directory.
@@ -71,10 +72,13 @@ accurate when sections change:
 
 Colours are not hard-coded at the point of use. The palette lives in the `:root` custom properties
 of §1, and §10 overrides **only those tokens**, so a scheme change never means editing component
-rules. Both colour schemes must look deliberately designed rather than inverted. Each animated
-layer also gets an explicit static treatment in §11: the global reduced-motion rule collapses
-`animation-duration` to ~0, which would otherwise leave the layer frozen on whatever keyframe it
-lands on instead of its intended resting appearance.
+rules. Both colour schemes must look deliberately designed rather than inverted. §11 collapses
+`animation-duration` globally to ~0, and any layer whose animation does not end on its intended
+resting appearance gets an explicit static override there: `.message` (the shimmer's
+`background-position`, plus a static skeleton gradient for the loading state), `.card::after` and
+the sunrise `.backdrop::before`, pinned at `--sun-alpha` with no transform. Layers whose base rule
+already *is* their resting appearance — the orb drifts, which revert to their unanimated positions
+once the collapsed animation finishes — need no override.
 
 ### Backdrop composition and stacking order
 
@@ -100,9 +104,12 @@ the stack reads as one source rather than separate blobs. Its tunables are §1 t
 `--ember`), `--sun-alpha` (full strength), `--sun-blend` (`screen` dark, `multiply` light),
 `--sun-cycle` and `--sun-breathe` (dim phase as a fraction of `--sun-alpha`). A radial
 `mask-image` (with `-webkit-` prefix) fades the layer with distance from the source while keeping
-a floor so the far corner stays lit. §10 re-tunes the tokens to a low-alpha warm wash for the light
-scheme; §11 pins the layer at `--sun-alpha` with no transform for reduced motion. The sunrise is
-decorative: no DOM node, no text, no interaction, no extra request.
+a floor so the far corner stays lit. The layer breathes: `@keyframes sun-breathe` runs over
+`--sun-cycle`, swelling opacity from `calc(var(--sun-alpha) * var(--sun-breathe))` to
+`--sun-alpha` and `scale(1.04)` at mid-cycle, with `transform-origin` at the anchor so the swell
+expands out of the corner rather than the viewport centre. §10 re-tunes the tokens to a low-alpha
+warm wash for the light scheme; §11 pins the layer at `--sun-alpha` with no transform for reduced
+motion. The sunrise is decorative: no DOM node, no text, no interaction, no extra request.
 
 **Trade-off — the vignette versus the sunrise.** The vignette pseudo-element is painted after the
 sunrise in DOM order, and its darkest region is exactly the corners where the sun sits, so the warm

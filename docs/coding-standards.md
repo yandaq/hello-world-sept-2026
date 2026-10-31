@@ -16,17 +16,17 @@ These record how the standards above apply in this repository. They do not relax
   test runner, linter or formatter is installed, and none may be added to satisfy a check for a
   scoped change. Use what Node >= 22 and the repository already provide.
 - Because there is no compiler or linter, `node --check` on each touched module plus the executable
-  fence in `docs/VALIDATION.md` is the baseline static gate. The gate runs every non-comment fence
-  line as its own `/bin/sh` process, so a fence line must be self-contained: no state carried over
-  from the line above it, and no construct spanning lines.
+  fence in `docs/VALIDATION.md` is the baseline static gate. `docs/VALIDATION.md` is authoritative
+  for how that gate runs fence lines — one `/bin/sh` process per line — and for the
+  self-containment rules that follow from it.
 
 ### Evidence for behaviour changes
 
 The repository has no automated test suite, so "every behaviour change has a test that exercises
-it" is currently met by deterministic executable checks rather than test files: the fence in
-`docs/VALIDATION.md` for HTTP, seed and routing behaviour, and rendered browser evidence for
-anything user-visible. That gap is a known limitation of the repository, not a licence to skip
-evidence — do not describe an unverified change as done.
+it" is currently met by deterministic executable checks rather than test files. `docs/VALIDATION.md`
+is authoritative for which checks those are — the fast check set for HTTP, seed and routing
+behaviour, and rendered browser evidence for anything user-visible. That gap is a known limitation
+of the repository, not a licence to skip evidence — do not describe an unverified change as done.
 
 ### Node and module style
 
