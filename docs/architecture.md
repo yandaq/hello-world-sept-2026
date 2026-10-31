@@ -93,8 +93,9 @@ front:
 
 The **sunrise** is a single bottom-left light source drawn on `.backdrop::before`: rays
 (`repeating-conic-gradient`), the disc, a halo, a corner-to-corner `to top right` throw and a
-horizon wash, all stacked in one `background-image` and all anchored to the same `--sun-x` /
-`--sun-y` point so they read as one source rather than separate blobs. Its tunables are §1 tokens
+horizon wash, stacked in one `background-image`. The rays, the disc and the halo are each drawn at
+the same `--sun-x` / `--sun-y` point, and the throw and the horizon wash run out of that corner, so
+the stack reads as one source rather than separate blobs. Its tunables are §1 tokens
 — `--sun-x`/`--sun-y` (anchor), `--sun-core`/`--sun-glow`/`--sun-ray` (derived from `--amber` and
 `--ember`), `--sun-alpha` (full strength), `--sun-blend` (`screen` dark, `multiply` light),
 `--sun-cycle` and `--sun-breathe` (dim phase as a fraction of `--sun-alpha`). A radial

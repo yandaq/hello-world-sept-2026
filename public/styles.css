@@ -52,10 +52,10 @@
   --orb-blur: 90px;
   --orb-blend: screen;
 
-  /* sunrise — one bottom-left light source (disc, halo, rays, diagonal throw,
-     horizon wash) anchored at --sun-x/--sun-y and blended with --sun-blend.
-     --sun-alpha is the layer's full strength, --sun-breathe the dim phase as a
-     fraction of it, --sun-cycle the length of one breath. */
+  /* sunrise — one bottom-left light source (disc, halo, rays anchored at
+     --sun-x/--sun-y, plus a diagonal throw and a horizon wash) blended with
+     --sun-blend. --sun-alpha is the layer's full strength, --sun-breathe the dim
+     phase as a fraction of it, --sun-cycle the length of one breath. */
   --sun-x: 14%;
   --sun-y: 94%;
   --sun-core: color-mix(in srgb, var(--amber) 88%, #fff);
@@ -216,11 +216,13 @@ html {
 
 /* sunrise — one bottom-left light source: a sunk disc, its halo, radiating rays
    and a warm throw that runs along the diagonal to the far corner and pools
-   along the horizon. Every layer shares the --sun-x / --sun-y anchor, so it
-   reads as one sunrise rather than stacked blobs. z-index 1 lifts it above the
-   orbs it lights; the vignette (.backdrop::after, z-index 2) still paints on
-   top of it, and its softened mid stop is what keeps the warm pixels from being
-   crushed. All of it stays inside .backdrop, i.e. behind main.hero. */
+   along the horizon. The rays, the disc and the halo are each drawn at the
+   --sun-x / --sun-y anchor, and the diagonal throw and the horizon wash run out
+   of that same corner, so the stack reads as one sunrise rather than as
+   stacked blobs. z-index 1 lifts it above the orbs it lights; the vignette
+   (.backdrop::after, z-index 2) still paints on top of it, and its softened mid
+   stop is what keeps the warm pixels from being crushed. All of it stays inside
+   .backdrop, i.e. behind main.hero. */
 .backdrop::before {
   content: "";
   position: absolute;
