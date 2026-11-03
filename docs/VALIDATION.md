@@ -54,8 +54,8 @@ printed server log contains `listening on http://localhost:3199`. The fence leav
 `data/hello.db` in place (the empty-database line below re-seeds first, so it does not depend on
 what ran before it).
 
-On Node.js 22 `node:sqlite` additionally prints an `ExperimentalWarning` on stderr. Per
-`CONTRACT.md` §1 that line is expected and is not a failure; newer Node versions do not print it.
+On Node.js 22 `node:sqlite` additionally prints an `ExperimentalWarning` on stderr. That line is
+expected and is not a failure; newer Node versions do not print it.
 
 A port other than 3000 is used so the fence does not collide with a manually started dev server, and
 the port pre-flight makes that collision a loud failure instead of a misleading one: a foreign
@@ -64,12 +64,12 @@ server on 3199 answers the route probes but has no listen log, so without the gu
 
 ## Probe expectations
 
-These are the contract statements behind the fences (`CONTRACT.md` §5, §9). What the fences actually
-execute is narrower: the status codes of the routes they name — `/api/message` seeded and empty,
+These are the documented behaviours behind the fences. What the fences actually execute is
+narrower: the status codes of the routes they name — `/api/message` seeded and empty,
 `/`, `/styles.css`, `/app.js`, `/nope` — plus the two JSON bodies and the listen-log line. The
-remaining statements (`Content-Type` values, non-`GET` methods, path traversal) are contract
-behaviour the server implements but the fence does not probe; re-check them by review when
-`src/server.js` or `CONTRACT.md` §5 changes.
+remaining statements (`Content-Type` values, non-`GET` methods, path traversal) are behaviour
+the server implements but the fence does not probe; re-check them by review when
+`src/server.js` changes.
 
 | Probe | Expected |
 | --- | --- |
@@ -100,7 +100,7 @@ BAK=$(mktemp -d); npm run --silent seed; mv data/hello.db "$BAK/hello.db"; trap 
 | Unit tests | No suite exists | No test runner is installed; see "Tooling absent from the repository" |
 | Linting / Type checking / Complexity / Duplication | No tooling configured | Nothing to run; do not add a linter or type checker for a scoped change |
 | Security | Only if the HTTP or file layer changes | Static handler must keep rejecting paths that escape `public/` |
-| Architectural conformance | Yes | `CONTRACT.md` file ownership (§2) and the stylesheet selector allow-list (§8) |
+| Architectural conformance | Yes | The stylesheet selector allow-list (`docs/coding-standards.md`) |
 | Acceptance criteria | Yes | State each criterion with its evidence, per `../VALIDATION.md` |
 
 ## Rendered validation (visual and pointer-behaviour changes)
@@ -111,8 +111,8 @@ to either presentation path, use the rendered checks below; the fast executable 
 mandatory and unchanged.
 
 - Use Pi's built-in Playwright-compatible browser automation. **Do not install Playwright,
-  Chromium or any browser-testing dependency** — `CONTRACT.md` §1 forbids new dependencies and
-  there is no build step.
+  Chromium or any browser-testing dependency** — this repository has zero npm dependencies and
+  no build step.
 - Capture, writing to `/tmp` rather than overwriting committed images: desktop dark (~1440×900),
   desktop `prefers-color-scheme: light`, mobile (390×844), `prefers-reduced-motion: reduce`, and
   the `loading` / `ready` / `error` card states.
@@ -125,11 +125,11 @@ mandatory and unchanged.
 - Record browser console output and the network log. Unexpected console or page errors are
   failures. A stylesheet-only change must add **no** new requests beyond `/`, `/styles.css`,
   `/app.js` and the `GET /api/message` the page already makes, which is the observable form of
-  `CONTRACT.md` §8's self-contained / no-assets rule. One console entry is expected and is not a
-  failure: `index.html` carries no icon link (`CONTRACT.md` §6 fixes the head tags), so Chromium
-  fetches `/favicon.ico` on the first navigation and the static handler answers it with the
-  contract `404 {"error":"not found"}`. It is a browser-initiated fetch, so it does not appear in
-  the page's own request list; anything else in the console is a failure.
+  the self-contained / no-assets rule. One console entry is expected and is not a
+  failure: `index.html` carries no icon link, so Chromium fetches `/favicon.ico` on the first
+  navigation and the static handler answers it with the documented `404 {"error":"not found"}`.
+  It is a browser-initiated fetch, so it does not appear in the page's own request list; anything
+  else in the console is a failure.
 - Check that the glass card's text remains legible over the backdrop in both colour schemes
   (target WCAG AA). Measure it rather than eyeballing it: sample the composited glass from a
   screenshot in a text-free part of the card padding (what the translucent, blurred card actually
@@ -184,7 +184,7 @@ status, not an exemption from these checks.
 ## Tooling absent from the repository
 
 The repository intentionally has no test runner, linter, formatter, type checker or build step
-(`CONTRACT.md` §1: no dependencies, no bundler, no TypeScript). Nothing above creates one, and
+(zero npm dependencies, no bundler, no TypeScript). Nothing above creates one, and
 `../VALIDATION.md`'s lint/type/complexity/duplication categories are not applicable rather than
 un-satisfied. That gap is recorded here as fact; it does not relax the standard that behaviour
 changes need evidence — for this app that evidence is the fence plus, for anything user-visible,

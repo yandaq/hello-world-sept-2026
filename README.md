@@ -51,7 +51,6 @@ is already serving it, so they can be run alongside a dev server on 3000.
 | `public/styles.css`        | All styling, including backdrop, sparkles and card states |
 | `data/hello.db`            | Generated SQLite database (gitignored)              |
 | `screenshots/`             | Reference renders of the page and its card states   |
-| `CONTRACT.md`              | Referenced binding contract; absent from this checkout |
 | `VALIDATION.md`            | Validation methodology for coding agents            |
 | `docs/VALIDATION.md`       | This repo's executable checks and evidence rules    |
 | `docs/architecture.md`     | Modules, allowed dependencies, recorded trade-offs  |

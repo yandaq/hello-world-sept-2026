@@ -12,9 +12,9 @@ These record how the standards above apply in this repository. They do not relax
 
 ### Dependencies and build
 
-- Zero npm dependencies and no build step (`CONTRACT.md` §1). No framework, bundler, TypeScript,
-  test runner, linter or formatter is installed, and none may be added to satisfy a check for a
-  scoped change. Use what Node >= 22 and the repository already provide.
+- Zero npm dependencies and no build step. No framework, bundler, TypeScript, test runner, linter
+  or formatter is installed, and none may be added to satisfy a check for a scoped change. Use
+  what Node >= 22 and the repository already provide.
 - Because there is no compiler or linter, `node --check` on each touched module plus the executable
   fence in `docs/VALIDATION.md` is the baseline static gate. `docs/VALIDATION.md` is authoritative
   for how that gate runs fence lines — one `/bin/sh` process per line — and for the
@@ -40,13 +40,12 @@ of the repository, not a licence to skip evidence — do not describe an unverif
 
 ### Stylesheet (`public/styles.css`)
 
-- `CONTRACT.md` §8 is binding: style only the listed DOM hooks and their descendants /
-  pseudo-elements, plus `:root` custom properties, `@media`, `@supports` and `@keyframes`. No
-  change may require a new HTML element, id, class or attribute, and HTML and JS are not this
-  file's to edit. This ownership restriction describes the earlier stylesheet-only task;
-  the mouse-trail request explicitly permits `app.js` behavior and decorative descendants of
-  the existing backdrop. Preserve the original HTML hooks and message-state semantics.
-  `CONTRACT.md` is absent from this checkout; do not infer unseen restrictions from it.
+- Style only the listed DOM hooks and their descendants / pseudo-elements, plus `:root` custom
+  properties, `@media`, `@supports` and `@keyframes`. No change may require a new HTML element,
+  id, class or attribute, and HTML and JS are not this file's to edit. This ownership restriction
+  describes the earlier stylesheet-only task; the mouse-trail request explicitly permits `app.js`
+  behavior and decorative descendants of the existing backdrop. Preserve the original HTML hooks
+  and message-state semantics.
 - Self-contained: system font stacks only — no `@import`, no web fonts, no external or local
   image, icon or font files. All imagery is generated from gradients, shadows and filters.
 - Palette values live in the §1 `:root` tokens; the light-scheme block in §10 overrides tokens

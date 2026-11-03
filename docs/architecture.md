@@ -3,9 +3,8 @@
 Modules of the `hello-world` webapp, their responsibilities and the dependencies allowed between
 them. Record architectural compromises and their trade-offs here.
 
-The runtime is plain Node.js >= 22 ESM with **zero npm dependencies** (`CONTRACT.md` §1): no build
-step, no framework, no bundler, no TypeScript. `CONTRACT.md` is binding — where code and contract
-disagree, the contract wins and the conflict is raised rather than silently resolved.
+The runtime is plain Node.js >= 22 ESM with **zero npm dependencies**: no build step, no
+framework, no bundler, no TypeScript.
 
 ## Runtime modules
 
@@ -23,7 +22,7 @@ src/server.js  →  src/db.js  →  node:sqlite
 src/seed.js ───────────────────────┘   (schema + seed only; never imported by the server)
 ```
 
-- The server **never** opens SQLite itself; it calls `getMessage()` (`CONTRACT.md` §5).
+- The server **never** opens SQLite itself; it calls `getMessage()`.
 - `src/db.js` exports exactly one named function, `getMessage()`. It is synchronous and returns
   the row body, or `null` when there is no message to return — the `messages` table is absent, the
   table is empty, **or the database file does not exist yet**. An unseeded app is a `null`, not a
@@ -41,7 +40,7 @@ src/seed.js ──────────────────────�
 | Route | Behaviour |
 | --- | --- |
 | `GET /api/message` | `200 {"message":"hello world"}`; `503 {"error":"no message in database"}` when `getMessage()` returns `null`; `500 {"error":…}` when it throws, with the stack `console.error`ed. The process must never crash on a request. |
-| `GET /` and other `public/` paths | Served from `public/` with the extension → MIME map in `CONTRACT.md` §5. Paths that resolve outside `public/` (e.g. `..` traversal) are rejected. |
+| `GET /` and other `public/` paths | Served from `public/` with the correct `Content-Type` per file extension. Paths that resolve outside `public/` (e.g. `..` traversal) are rejected. |
 | Anything else, unknown extension, non-`GET` | `404 {"error":"not found"}` as `application/json`. |
 
 `PORT` comes from `process.env.PORT`, defaulting to 3000. On listen the server logs exactly
@@ -51,7 +50,7 @@ src/seed.js ──────────────────────�
 
 The browser side is three static files under `public/`, served verbatim:
 
-- `index.html` — the fixed DOM hook tree of `CONTRACT.md` §6 (`body.page` ›
+- `index.html` — the fixed DOM hook tree (`body.page` ›
   `div.backdrop` + `main.hero` › `section.card`). Card state is expressed **only** by
   `data-state="loading" | "ready" | "error"`.
 - `app.js` — `fetch('/api/message')`, then assign `#message` `textContent`, update `#status`, and
@@ -60,9 +59,9 @@ The browser side is three static files under `public/`, served verbatim:
   each removed after 700ms (its CSS animation ends at 650ms). Per-particle timers are the only
   pending effect work; reduced motion, hidden documents and pagehide clear nodes and timers.
   Runtime motion-preference changes permit emission again only on subsequent mouse movement.
-- `styles.css` — every visual rule. Self-contained by contract: system font stacks, no `@import`,
+- `styles.css` — every visual rule. Self-contained: system font stacks, no `@import`,
   no web fonts, no image/icon/font files; all imagery is generated from gradients, shadows and
-  filters (`CONTRACT.md` §8).
+  filters.
 
 ### Stylesheet organisation
 
@@ -133,8 +132,6 @@ light scheme, trading a slightly softer edge for materially less paint on mobile
 
 Sparkle appearance lives in CSS, with placement and lifetime owned by `app.js`. Reduced motion
 explicitly hides sparkles and disables their animation in addition to JavaScript cleanup.
-`CONTRACT.md` is absent from this checkout; the mouse-trail request authorizes this client-side
-extension without reconstructing that missing document.
 
 Because visual styling lives in CSS, stylesheet changes cannot be validated with `curl`
 alone — see [`VALIDATION.md`](VALIDATION.md) → "Rendered validation" for the browser evidence
@@ -143,4 +140,4 @@ expected.
 ## Out of scope for this document
 
 `docs/plans/` holds dated, historical plans; they record what was intended at the time and are not
-current architecture. `.pi/sub-agents/` are pipeline agent instructions, not runtime modules.
+current architecture.
