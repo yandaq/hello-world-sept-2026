@@ -43,7 +43,10 @@ of the repository, not a licence to skip evidence — do not describe an unverif
 - `CONTRACT.md` §8 is binding: style only the listed DOM hooks and their descendants /
   pseudo-elements, plus `:root` custom properties, `@media`, `@supports` and `@keyframes`. No
   change may require a new HTML element, id, class or attribute, and HTML and JS are not this
-  file's to edit.
+  file's to edit. This ownership restriction describes the earlier stylesheet-only task;
+  the mouse-trail request explicitly permits `app.js` behavior and decorative descendants of
+  the existing backdrop. Preserve the original HTML hooks and message-state semantics.
+  `CONTRACT.md` is absent from this checkout; do not infer unseen restrictions from it.
 - Self-contained: system font stacks only — no `@import`, no web fonts, no external or local
   image, icon or font files. All imagery is generated from gradients, shadows and filters.
 - Palette values live in the §1 `:root` tokens; the light-scheme block in §10 overrides tokens

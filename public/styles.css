@@ -5,7 +5,7 @@
    Sections:
      1. Tokens
      2. Reset & base
-     3. Backdrop (aurora orbs, sunrise, grain, vignette)
+     3. Backdrop (aurora orbs, sunrise, grain, vignette, mouse sparkles)
      4. Layout (hero)
      5. Card (glass)
      6. Typography (eyebrow, title, message, status, meta)
@@ -65,6 +65,10 @@
   --sun-blend: screen;
   --sun-cycle: 24s;
   --sun-breathe: 0.85;
+
+  /* mouse sparkles */
+  --spark-color: color-mix(in srgb, var(--amber) 65%, var(--cyan));
+  --spark-alpha: 0.65;
 
   /* texture */
   --grain-alpha: 0.05;
@@ -327,6 +331,23 @@ html {
     color-mix(in srgb, var(--vignette-mid) 55%, transparent) 78%,
     var(--vignette) 100%
   );
+}
+
+/* Finite mouse twinkles: above the vignette, still below the entire hero.
+   The fixed backdrop clips edge particles without affecting document geometry. */
+.sparkle {
+  position: absolute;
+  z-index: 3;
+  left: var(--spark-x);
+  top: var(--spark-y);
+  width: 9px;
+  height: 9px;
+  pointer-events: none;
+  background: var(--spark-color);
+  clip-path: polygon(50% 0, 61% 38%, 100% 50%, 61% 62%, 50% 100%, 39% 62%, 0 50%, 39% 38%);
+  filter: drop-shadow(0 0 2px var(--spark-color));
+  opacity: 0;
+  animation: twinkle 650ms ease-out both;
 }
 
 /* -------------------------------------------------------------------------
@@ -701,6 +722,13 @@ html {
 /* -------------------------------------------------------------------------
    8. Keyframes
    ---------------------------------------------------------------------- */
+@keyframes twinkle {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--spark-turn)) scale(0.3); }
+  20%, 50% { opacity: var(--spark-alpha); }
+  35% { opacity: 0.25; }
+  100% { opacity: 0; transform: translate(-50%, 5px) rotate(calc(var(--spark-turn) + 45deg)) scale(0.2); }
+}
+
 @keyframes drift-1 {
   0% {
     transform: translate3d(0, 0, 0) scale(1);
@@ -907,6 +935,7 @@ html {
     --ember: #e0457f;
     --amber: #c2760f;
     --danger: #cc2f46;
+    --spark-alpha: 0.5;
 
     --glass-bg: rgba(255, 255, 255, 0.62);
     --glass-bg-solid: #fffefc;
@@ -971,6 +1000,11 @@ html {
     animation-delay: 0ms !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .sparkle {
+    display: none;
+    animation: none !important;
   }
 
   .message {

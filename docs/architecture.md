@@ -55,7 +55,11 @@ The browser side is three static files under `public/`, served verbatim:
   `div.backdrop` + `main.hero` › `section.card`). Card state is expressed **only** by
   `data-state="loading" | "ready" | "error"`.
 - `app.js` — `fetch('/api/message')`, then assign `#message` `textContent`, update `#status`, and
-  set `data-state`. Text assignment only; never injects HTML.
+  set `data-state`. Text assignment only; never injects HTML. Also initializes a mouse-only
+  decorative trail before fetching: at most one particle per 45ms, at most 16 live particles,
+  each removed after 700ms (its CSS animation ends at 650ms). Per-particle timers are the only
+  pending effect work; reduced motion, hidden documents and pagehide clear nodes and timers.
+  Runtime motion-preference changes permit emission again only on subsequent mouse movement.
 - `styles.css` — every visual rule. Self-contained by contract: system font stacks, no `@import`,
   no web fonts, no image/icon/font files; all imagery is generated from gradients, shadows and
   filters (`CONTRACT.md` §8).
@@ -66,7 +70,7 @@ The browser side is three static files under `public/`, served verbatim:
 accurate when sections change:
 
 1. Tokens (`:root`, dark-first) · 2. Reset & base · 3. Backdrop (aurora orbs, sunrise, grain,
-   vignette) · 4. Layout (hero) · 5. Card (glass) · 6. Typography · 7. States (loading / ready /
+   vignette, mouse sparkles) · 4. Layout (hero) · 5. Card (glass) · 6. Typography · 7. States (loading / ready /
    error) · 8. Keyframes · 9. Responsive · 10. Light palette (`prefers-color-scheme: light`) ·
    11. Reduced motion (`prefers-reduced-motion: reduce`).
 
@@ -93,7 +97,8 @@ front:
 | `.backdrop` background | base stacking level | radial canvas wash from `--bg-cast` to `--bg` |
 | `.orb--1/2/3`, `.grain` | DOM order, `z-index: auto` | blurred, blended aurora lights and the CSS-only film grain |
 | `.backdrop::before` — **sunrise** | `z-index: 1` | above the orbs it lights |
-| `.backdrop::after` — vignette | `z-index: 2` | above everything in the backdrop |
+| `.backdrop::after` — vignette | `z-index: 2` | above the ambient lights |
+| `.sparkle` — mouse trail | `z-index: 3` | clipped, non-interactive spans inside the aria-hidden backdrop; below the entire hero |
 
 The **sunrise** is a single bottom-left light source drawn on `.backdrop::before`: rays
 (`repeating-conic-gradient`), the disc, a halo, a corner-to-corner `to top right` throw and a
@@ -126,7 +131,12 @@ the orbs carry a large `filter: blur()`. The sunrise deliberately uses gradient 
 mask instead of adding a third full-viewport `filter: blur()` layer, and keeps alpha low in the
 light scheme, trading a slightly softer edge for materially less paint on mobile.
 
-Because the whole visual result lives in CSS, stylesheet changes cannot be validated with `curl`
+Sparkle appearance lives in CSS, with placement and lifetime owned by `app.js`. Reduced motion
+explicitly hides sparkles and disables their animation in addition to JavaScript cleanup.
+`CONTRACT.md` is absent from this checkout; the mouse-trail request authorizes this client-side
+extension without reconstructing that missing document.
+
+Because visual styling lives in CSS, stylesheet changes cannot be validated with `curl`
 alone — see [`VALIDATION.md`](VALIDATION.md) → "Rendered validation" for the browser evidence
 expected.
 
