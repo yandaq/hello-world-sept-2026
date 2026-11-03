@@ -103,10 +103,12 @@ BAK=$(mktemp -d); npm run --silent seed; mv data/hello.db "$BAK/hello.db"; trap 
 | Architectural conformance | Yes | `CONTRACT.md` file ownership (§2) and the stylesheet selector allow-list (§8) |
 | Acceptance criteria | Yes | State each criterion with its evidence, per `../VALIDATION.md` |
 
-## Rendered validation (presentational changes)
+## Rendered validation (visual and pointer-behaviour changes)
 
-`public/styles.css` drives the whole visual result, and its effects are not observable from
-`curl`. For any change to it:
+`public/styles.css` owns appearance; `public/app.js` also owns decorative mouse-trail placement
+and lifecycle. Neither visual effects nor pointer behaviour can be proved with `curl`. For changes
+to either presentation path, use the rendered checks below; the fast executable set above remains
+mandatory and unchanged.
 
 - Use Pi's built-in Playwright-compatible browser automation. **Do not install Playwright,
   Chromium or any browser-testing dependency** — `CONTRACT.md` §1 forbids new dependencies and
@@ -148,6 +150,36 @@ BAK=$(mktemp -d); npm run --silent seed; mv data/hello.db "$BAK/hello.db"; trap 
 If no browser automation is available, treat this as a disclosed blocker
 (`../VALIDATION.md` → Blocked Validation): run the fence, review the selector and stacking change
 statically, and state the method actually used rather than claiming the page was seen.
+
+### Mouse-trail scenarios
+
+In addition to the captures and console/network checks above, exercise these scenarios for changes
+to the trail. Lifecycle limits and ownership are described in
+[`architecture.md`](architecture.md#presentation-layer); use those values as assertion targets.
+
+- Move a mouse at separated viewport coordinates and verify `.sparkle` nodes appear near recent
+  pointer positions, twinkle, and expire. Stress frequent movement to check the emission interval
+  and live-node cap; stop moving and verify zero nodes and no pending trail-owned timers after
+  expiry. Touch, pen and zero-movement events must not emit particles.
+- Start with reduced motion enabled, then toggle it in both directions. Enabling it must clear
+  nodes and timers immediately; disabling it must wait for subsequent mouse movement. Verify
+  cleanup on document hide and `pagehide`, and emission after returning and moving again.
+- Exercise movement while `/api/message` is pending and after a deliberately failed request;
+  verify independence from card state. Record induced request failures and their expected console
+  diagnostics separately from unexpected errors.
+- Capture an active trail in dark and light desktop views and a mobile viewport. Check viewport
+  edges and movement across the card: unchanged cursor, hit-testing, focus, layout dimensions and
+  scroll overflow; non-focusable particles under the accessibility-hidden backdrop; no paint above
+  card content. Mobile touch movement should produce no trail.
+- Measure card contrast with and without active particles at matched backdrop phases in both
+  schemes. The sunrise-toggle procedure above isolates the sunrise, not the trail. Capture active
+  particles during their finite animation rather than relying on animation-disabled screenshots,
+  which can finish the trail before capture. Verify movement adds no network requests.
+
+A deterministic isolated initializer check can supplement these scenarios but cannot replace
+rendered tracking, contrast, hit-testing or accessibility evidence. The dated implementation record
+in `plans/20261103-225605.md` reports browser evidence as blocked, not passed; it is historical
+status, not an exemption from these checks.
 
 ## Tooling absent from the repository
 
